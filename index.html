@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
+<meta name="description" content="飲んだコーヒーと味を、1年の文字盤に記録していくデモ。">
+<title>ドリップノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;600;700&display=swap">
+<style>
+/* Layout: 左にスマホ実寸の試作、右に体験の流れとデータの形。DESIGN-apple.md のトークンに従う。
+   主役は1年を1周にした「コーヒー暦」（文字盤）。色は焙煎のグラデーション（明度だけ）、選択はアクションブルー。 */
+:root {
+  --primary: #0066cc;
+  --primary-focus: #0071e3;
+  --primary-on-dark: #2997ff;
+  --ink: #1d1d1f;
+  --ink-80: #333333;
+  --ink-48: #7a7a7a;
+  --hairline: #e0e0e0;
+  --divider: #f0f0f0;
+  --canvas: #ffffff;
+  --parchment: #f5f5f7;
+  --pearl: #fafafc;
+  --tile: #272729;
+  --on-dark: #ffffff;
+  --on-dark-muted: #cccccc;
+  --chip: rgba(210,210,215,.64);
+  --frost: rgba(245,245,247,.8);
+  --link: var(--primary);
+  --sel: var(--primary);
+  --neutral: #a1a1a6;
+  --glass: rgba(0,0,0,.035);
+  --t0: #d9b68c; --t1: #b98a5c; --t2: #96643c; --t3: #6b4329; --t4: #3a251a;
+  --danger: #d70015;
+  --product-shadow: drop-shadow(3px 5px 15px rgba(0,0,0,.22));
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --tight: -0.374px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #f5f5f7; --ink-80: #d2d2d7; --ink-48: #8e8e93;
+    --hairline: #38383a; --divider: #2c2c2e;
+    --canvas: #1c1c1e; --parchment: #000000; --pearl: #2c2c2e; --tile: #272729;
+    --frost: rgba(22,22,23,.8); --link: var(--primary-on-dark); --sel: #0a84ff; --danger: #ff453a;
+    --neutral: #6e6e73; --glass: rgba(255,255,255,.05); --t0: #e3c29b; --t1: #c79a6c; --t2: #a6754b; --t3: #83573a; --t4: #5a3d2c;
+    --product-shadow: drop-shadow(3px 5px 15px rgba(0,0,0,.6));
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #f5f5f7; --ink-80: #d2d2d7; --ink-48: #8e8e93;
+  --hairline: #38383a; --divider: #2c2c2e;
+  --canvas: #1c1c1e; --parchment: #000000; --pearl: #2c2c2e; --tile: #272729;
+  --frost: rgba(22,22,23,.8); --link: var(--primary-on-dark); --sel: #0a84ff; --danger: #ff453a;
+    --neutral: #6e6e73; --glass: rgba(255,255,255,.05); --t0: #e3c29b; --t1: #c79a6c; --t2: #a6754b; --t3: #83573a; --t4: #5a3d2c;
+  --product-shadow: drop-shadow(3px 5px 15px rgba(0,0,0,.6));
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--parchment); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.47; letter-spacing: var(--tight); padding-inline: 16px; padding-block: 40px 64px; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--primary-focus); outline-offset: 2px; }
+
+.stage { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 400px minmax(0,1fr); gap: 64px; align-items: start; }
+@media (max-width: 900px) { .stage { grid-template-columns: minmax(0,1fr); gap: 48px; } }
+
+/* ---------- phone ---------- */
+.phone { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); width: 100%; max-width: 400px; margin: 0 auto; height: min(820px, calc(100dvh - 48px)); min-height: 620px; background: #0b0b0c; border-radius: 52px; padding: 10px; }
+@media (max-width: 900px) { .phone { position: relative; top: 0; } }
+@media (max-width: 440px) {
+  .phone { padding: 0; border-radius: 0; background: transparent; height: min(780px, calc(100dvh - 24px)); margin-inline: -16px; width: calc(100% + 32px); max-width: none; }
+  .screen { border-radius: 0 !important; }
+}
+.screen { position: relative; height: 100%; border-radius: 42px; overflow: hidden; background: var(--parchment); display: flex; flex-direction: column; }
+.statusbar { position: absolute; top: 0; left: 0; right: 0; z-index: 4; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; font-size: 14px; font-weight: 600; letter-spacing: -0.224px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.view { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding-bottom: 96px; }
+.view::-webkit-scrollbar { display: none; }
+.view.sheet { padding-bottom: 40px; }
+.view.withdock { padding-bottom: 110px; }
+.view.plain { background: var(--canvas); }
+.topbar.sticky { position: sticky; top: 0; z-index: 3; background: color-mix(in srgb, var(--canvas) 86%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); gap: 4px; }
+.tb-cap { font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mform { padding: 4px 20px 0; display: grid; gap: 18px; }
+.mform hr { border: 0; border-top: 1px solid var(--divider); margin: 4px 0; }
+.rhead { display: flex; align-items: center; gap: 14px; position: relative; }
+.pslot { position: relative; width: 64px; height: 64px; border-radius: 14px; background: var(--parchment); color: var(--ink-48); display: grid; place-items: center; overflow: hidden; cursor: pointer; flex: none; }
+.pslot input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rmp { position: absolute; left: 48px; top: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--ink); color: var(--canvas); font-size: 13px; line-height: 1; cursor: pointer; }
+.rmeta { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.beanin { border: 0; outline: none; background: transparent; font-size: 24px; font-weight: 600; letter-spacing: -0.28px; padding: 0; width: 100%; color: var(--ink); }
+.beanin::placeholder { color: var(--hairline); }
+.datein { border: 0; outline: none; background: transparent; font-size: 14px; color: var(--ink-48); padding: 0; letter-spacing: -0.224px; }
+.mrecent { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: -6px -20px 0; padding: 0 20px; }
+.mrecent::-webkit-scrollbar { display: none; }
+.mrecent .lab { flex: none; }
+.mstars { display: flex; justify-content: center; gap: 4px; }
+.mstars .star { width: 44px; height: 44px; }
+.mstars .star svg { width: 30px; height: 30px; }
+.flav { display: grid; gap: 10px; }
+.fg { display: flex; flex-wrap: wrap; gap: 6px; }
+.mdesc { margin: -6px 0 0; min-height: 20px; font-size: 13px; letter-spacing: -0.08px; color: var(--ink-48); }
+.mdesc b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.mmemo { border: 0; border-radius: 12px; background: var(--parchment); min-height: 0; padding: 12px 14px; font-size: 16px; }
+.addrow { justify-self: start; border: 0; background: none; color: var(--link); font-size: 15px; padding: 6px 0; cursor: pointer; }
+.mbrew { display: grid; gap: 12px; }
+.mbrew-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--ink-48); }
+.menu-btn.sm { width: 32px; height: 32px; color: var(--ink-48); }
+.mbrew .methods { padding: 0; }
+.mrows { display: grid; }
+.mrows .row { padding-inline: 0; }
+.val.strong { font-size: 17px; font-weight: 600; }
+.mfoot { position: sticky; bottom: 0; padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--canvas) 35%); }
+.tabbar { display: none !important; }
+.topbar { height: 96px; padding: 44px 12px 0; display: flex; align-items: center; }
+.menu-btn { width: 44px; height: 44px; border: 0; background: none; color: var(--ink); display: grid; place-items: center; cursor: pointer; border-radius: 50%; flex: none; }
+.menu-btn:active { background: var(--parchment); }
+.subnav .menu-btn { margin-left: -10px; }
+.subnav .menu-btn + h1 { margin-right: auto; }
+.selhead { display: flex; justify-content: space-between; align-items: center; margin: 8px 20px 10px; font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
+.drawer { position: absolute; inset: 0; z-index: 6; }
+.drawer .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+.drawer .panel { position: absolute; top: 0; bottom: 0; left: 0; width: 72%; background: var(--canvas); padding: 104px 12px 24px; display: grid; align-content: start; gap: 2px; animation: slidein .25s ease both; }
+@keyframes slidein { from { transform: translateX(-100%); } to { transform: none; } }
+.drawer .panel button { text-align: left; border: 0; background: none; font-size: 21px; font-weight: 600; letter-spacing: .231px; padding: 12px 14px; border-radius: 12px; cursor: pointer; color: var(--ink); }
+.drawer .panel button[aria-current] { color: var(--link); }
+.drawer .panel button:active { background: var(--parchment); }
+.dock { position: absolute; left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 3; pointer-events: none; }
+.dock-row { display: flex; align-items: center; gap: 12px; }
+.dock-row > * { pointer-events: auto; }
+.dock-row > span { flex: 1; pointer-events: none; }
+.fab { width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--primary); color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; transition: transform .2s ease; margin-left: auto; }
+.fab:active { transform: scale(.95); }
+.dock-pend { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; background: var(--frost); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border: 1px solid var(--hairline); border-radius: 9999px; min-height: 56px; padding: 8px 18px; cursor: pointer; }
+.dock-pend .dotmark { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+.dock-pend .txt { flex: 1; min-width: 0; display: grid; }
+.dock-pend b { font-size: 14px; font-weight: 600; letter-spacing: -0.224px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-pend .txt span { font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-pend .go { color: var(--link); font-size: 14px; white-space: nowrap; }
+.btn.lgbtn { min-height: 52px; font-size: 17px; }
+.btn:disabled { opacity: .4; cursor: default; transform: none; }
+
+.subnav { position: sticky; top: 0; z-index: 3; min-height: 96px; padding: 44px 16px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--frost); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--hairline); }
+.subnav h1 { margin: 0; font-size: 21px; font-weight: 600; line-height: 1.19; letter-spacing: .231px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subnav.center { display: grid; grid-template-columns: 1fr auto 1fr; padding-inline: 12px; }
+.subnav.center h1 { font-size: 17px; text-align: center; max-width: 180px; }
+.subnav .side { display: flex; gap: 8px; align-items: center; }
+.subnav.center .side:last-child { justify-content: flex-end; }
+
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; padding: 6px 40px 18px; display: flex; justify-content: space-around; align-items: center; background: var(--frost); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 1px solid var(--hairline); z-index: 3; }
+.tab { background: none; border: 0; cursor: pointer; display: grid; justify-items: center; gap: 2px; font-size: 10px; letter-spacing: -0.08px; color: var(--ink-48); padding: 4px 16px; }
+.tab svg { width: 26px; height: 26px; }
+.tab[aria-current="page"] { color: var(--link); }
+
+/* ---------- buttons ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 9999px; padding: 11px 22px; font-size: 17px; line-height: 1; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer; transition: transform .2s ease; white-space: nowrap; }
+.btn:active { transform: scale(.95); }
+.btn.ghost { background: transparent; color: var(--link); border-color: var(--link); }
+.btn.small { min-height: 34px; padding: 7px 16px; font-size: 15px; }
+.btn.block { width: 100%; }
+.btn.danger { background: transparent; color: var(--danger); border-color: var(--hairline); }
+.btn.solid-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--primary); color: #fff; display: grid; place-items: center; cursor: pointer; transition: transform .2s ease; flex: none; }
+.icon-btn:active { transform: scale(.95); }
+.textbtn { background: none; border: 0; padding: 8px 4px; color: var(--link); cursor: pointer; font-size: 17px; white-space: nowrap; }
+.textbtn:disabled { color: var(--ink-48); cursor: default; }
+.textbtn.strong { font-weight: 600; }
+.textbtn.sm { font-size: 14px; letter-spacing: -0.224px; padding: 4px 0; }
+
+/* ---------- map (home) ---------- */
+.maptile { background: var(--canvas); padding: 20px 16px 24px; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.maptile .lead { margin: 0; font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
+.wheel { width: 100%; max-width: 344px; aspect-ratio: 1; display: block; }
+.wheel .seg { cursor: pointer; }
+.wheel .seg:focus { outline: none; }
+.wheel .seg:focus-visible path { stroke: var(--primary-focus); stroke-width: 2.5; }
+.wheel text { font-family: var(--font); letter-spacing: 0; pointer-events: none; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; margin-top: 8px; }
+.legend i { display: block; width: 72px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--ink) 8%, transparent), var(--ink)); }
+
+.dialtile { background: var(--canvas); padding: 0 10px 16px; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.yearnav { display: flex; align-items: center; gap: 22px; }
+.yname { font-size: 17px; font-weight: 600; min-width: 56px; font-variant-numeric: tabular-nums; }
+.yr { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--parchment); color: var(--link); font-size: 22px; line-height: 1; cursor: pointer; transition: transform .2s ease; }
+.yr:active { transform: scale(.92); }
+.yr:disabled { color: var(--hairline); cursor: default; transform: none; }
+.dial { width: 100%; max-width: 340px; display: block; }
+.dial text { font-family: var(--font); letter-spacing: 0; }
+.dial .tick { cursor: pointer; transition: opacity .25s ease; }
+.dial .tick.grow { animation: grow .9s cubic-bezier(.2,1.3,.4,1) both; transform-box: view-box; transform-origin: 0 0; }
+@keyframes grow { 0% { transform: scale(.55); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1); } }
+.dialstats { margin: 0; font-size: 14px; color: var(--ink-80); letter-spacing: -0.224px; }
+.dlegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.dlegend .key { display: inline-flex; align-items: center; gap: 6px; border-radius: 9999px; padding: 5px 10px; font-size: 12px; letter-spacing: -0.12px; border: 1px solid transparent; background: var(--canvas); color: var(--ink); cursor: pointer; transition: transform .2s ease; white-space: nowrap; }
+.dlegend button.key:active { transform: scale(.95); }
+.dlegend .key[aria-pressed="true"] { border: 2px solid var(--primary-focus); padding: 4px 10px; }
+.dlegend .key.static { cursor: default; border-color: transparent; }
+.dlegend .key i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.dlegend .key i.hollow { border: 1.5px dashed var(--ink-48); }
+.dlegend .key small { color: var(--ink-48); font-size: 12px; font-variant-numeric: tabular-nums; }
+.scale-note { margin: 6px 0 0; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; }
+.scale-note .grad { width: 64px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--t0), var(--t1), var(--t2), var(--t3), var(--t4)); }
+.pending { margin: 16px 20px 0; display: grid; gap: 8px; }
+.pend { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 18px; padding: 12px 14px 12px 16px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; width: 100%; }
+.pend .dotmark { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+.pend .txt { flex: 1; min-width: 0; display: grid; }
+.pend b { font-size: 15px; font-weight: 600; letter-spacing: -0.224px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pend span { font-size: 13px; color: var(--ink-48); letter-spacing: -0.08px; }
+.pend .go { color: var(--link); font-size: 15px; white-space: nowrap; }
+
+.section-title { margin: 0; padding: 32px 20px 12px; font-size: 24px; font-weight: 600; line-height: 1.17; letter-spacing: -0.28px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; text-wrap: balance; }
+.section-title small { font-size: 14px; font-weight: 400; color: var(--ink-48); letter-spacing: -0.224px; white-space: nowrap; }
+.hint { margin: 0 20px 12px; font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
+.prefs { margin: 0 20px; background: var(--tile); color: var(--on-dark); border-radius: 18px; padding: 18px 18px 16px; display: grid; gap: 10px; }
+.prefs .k { font-size: 13px; color: var(--on-dark-muted); letter-spacing: -0.08px; }
+.prefs .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.prefs .lab { background: rgba(255,255,255,.12); color: var(--on-dark); border: 0; }
+
+.cups { display: grid; gap: 0; margin: 0 20px; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 18px; overflow: hidden; }
+.cup { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; text-align: left; background: none; border: 0; width: 100%; cursor: pointer; }
+.cup + .cup { border-top: 1px solid var(--divider); }
+.cup .th { width: 56px; height: 56px; border-radius: 8px; overflow: hidden; }
+.cup .t { min-width: 0; display: grid; gap: 1px; }
+.cup b { font-size: 15px; font-weight: 600; letter-spacing: -0.224px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup .m { font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup .r { font-size: 12px; white-space: nowrap; text-align: right; display: grid; gap: 2px; justify-items: end; }
+.photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph { width: 100%; height: 100%; background: var(--parchment); display: grid; place-items: center; color: var(--ink); }
+.ph svg { width: 60%; height: 60%; filter: var(--product-shadow); }
+.stars { letter-spacing: 1px; font-size: 12px; white-space: nowrap; }
+.stars i { font-style: normal; color: var(--hairline); }
+.badge { font-size: 11px; letter-spacing: 0; border-radius: 9999px; padding: 1px 8px; border: 1px solid var(--primary); color: var(--link); white-space: nowrap; }
+.tag { font-size: 11px; color: var(--ink-48); border: 1px solid var(--hairline); border-radius: 9999px; padding: 0 7px; letter-spacing: 0; white-space: nowrap; }
+.empty { margin: 0 20px; padding: 28px 20px; text-align: center; border: 1px dashed var(--hairline); border-radius: 18px; color: var(--ink-48); display: grid; gap: 12px; justify-items: center; font-size: 15px; }
+.month { margin: 24px 20px 8px; font-size: 14px; font-weight: 600; color: var(--ink-48); letter-spacing: -0.224px; }
+.search { margin: 16px 20px 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 9999px; background: var(--canvas); border: 1px solid var(--hairline); }
+.search input { border: 0; background: transparent; outline: none; flex: 1; min-width: 0; font-size: 17px; }
+.search svg { color: var(--ink-48); flex: none; }
+
+/* label chips */
+.lab { display: inline-flex; align-items: center; border-radius: 9999px; padding: 4px 11px; font-size: 13px; letter-spacing: -0.08px; border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink); cursor: pointer; transition: transform .2s ease; white-space: nowrap; }
+.lab:active { transform: scale(.95); }
+.lab[aria-pressed="true"] { border: 2px solid var(--primary-focus); padding: 3px 10px; }
+.lab.static { cursor: pointer; }
+
+/* ---------- detail ---------- */
+.hero { aspect-ratio: 4 / 3; max-width: 100%; background: var(--canvas); }
+.head { background: var(--canvas); padding: 20px 20px 24px; text-align: center; display: grid; gap: 6px; justify-items: center; }
+.head .kicker { font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
+.head h2 { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.13; letter-spacing: -0.28px; text-wrap: balance; }
+.head .stars { font-size: 18px; letter-spacing: 2px; }
+.block { margin: 20px 20px 0; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 18px; padding: 18px; display: grid; gap: 12px; }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.block-head h3 { margin: 0; font-size: 21px; font-weight: 600; line-height: 1.19; letter-spacing: .231px; }
+.block .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.block p { margin: 0; white-space: pre-wrap; }
+.block.todo { border-style: dashed; text-align: center; justify-items: center; }
+.block.todo p { color: var(--ink-48); font-size: 15px; }
+.specs { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border-top: 1px solid var(--divider); margin: 0 -18px; }
+.spec { display: grid; padding: 12px 4px 0; text-align: center; }
+.spec:nth-child(3n+2), .spec:nth-child(3n+3) { border-left: 1px solid var(--divider); }
+.spec:nth-child(n+4) { border-top: 1px solid var(--divider); padding-bottom: 0; margin-top: 12px; }
+.spec b { font-size: 21px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.spec b small { font-size: 13px; font-weight: 400; }
+.spec span { font-size: 12px; letter-spacing: -0.12px; color: var(--ink-48); }
+.spec.calc b { color: var(--link); }
+.memo { color: var(--ink-80); font-size: 15px; }
+
+/* ---------- forms ---------- */
+.form { padding: 12px 20px 0; display: grid; gap: 26px; }
+.group-label { font-size: 13px; color: var(--ink-48); letter-spacing: -0.08px; margin: 0 0 6px 16px; }
+.group-foot { font-size: 13px; color: var(--ink-48); letter-spacing: -0.08px; margin: 6px 16px 0; }
+.group { background: var(--canvas); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 16px; }
+.row + .row { border-top: 1px solid var(--divider); }
+.row label, .row .lbl { flex: none; font-size: 17px; }
+.row input[type=text], .row input[type=date] { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; text-align: right; font-size: 17px; color: var(--ink); }
+.row input::placeholder, textarea::placeholder { color: var(--ink-48); }
+.row .val { margin-left: auto; font-variant-numeric: tabular-nums; }
+.recent { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 12px; border-top: 1px solid var(--divider); }
+.stepper { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.stepper output { min-width: 64px; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stepper output small { font-weight: 400; font-size: 14px; color: var(--ink-48); }
+.step { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--parchment); color: var(--ink); cursor: pointer; display: grid; place-items: center; font-size: 20px; line-height: 1; transition: transform .2s ease; }
+.step:active { transform: scale(.9); }
+.row.col { flex-direction: column; align-items: stretch; gap: 4px; padding-block: 12px; }
+.row.col .top { display: flex; justify-content: space-between; align-items: baseline; }
+input[type=range] { width: 100%; accent-color: var(--primary); height: 28px; margin: 0; }
+.scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; }
+textarea { width: 100%; resize: none; border: 0; background: transparent; outline: none; font-size: 17px; line-height: 1.47; min-height: 96px; padding: 12px 16px; display: block; color: var(--ink); }
+.water { background: var(--tile); color: var(--on-dark); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+.water .l { font-size: 13px; color: var(--on-dark-muted); letter-spacing: -0.08px; line-height: 1.3; }
+.water .l b { display: block; color: var(--on-dark); font-size: 17px; font-weight: 600; letter-spacing: -0.374px; }
+.water output { font-size: 36px; font-weight: 600; letter-spacing: -0.5px; line-height: 1; font-variant-numeric: tabular-nums; }
+.water output small { font-size: 17px; font-weight: 400; color: var(--on-dark-muted); }
+.methods { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; }
+.rating { display: flex; gap: 2px; margin-left: auto; }
+.star { width: 36px; height: 36px; border: 0; background: none; cursor: pointer; color: var(--hairline); display: grid; place-items: center; transition: transform .2s ease; }
+.star.on { color: var(--ink); }
+.star:active { transform: scale(.88); }
+.star svg { width: 24px; height: 24px; }
+.picker { display: grid; }
+.pgroup { padding: 12px 16px; display: grid; gap: 8px; }
+.pgroup + .pgroup { border-top: 1px solid var(--divider); }
+.pgroup h4 { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-48); letter-spacing: -0.08px; }
+.pgroup .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.desc { position: sticky; bottom: 0; background: var(--tile); color: var(--on-dark); border-radius: 12px; padding: 12px 16px; font-size: 14px; letter-spacing: -0.224px; min-height: 48px; display: flex; gap: 10px; align-items: center; }
+.desc b { white-space: nowrap; }
+.desc span { color: var(--on-dark-muted); }
+.photo-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.photo-slot { width: 72px; height: 72px; border-radius: 8px; overflow: hidden; flex: none; position: relative; background: var(--parchment); }
+.photo-slot .rm { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; display: grid; place-items: center; font-size: 14px; }
+.addphoto { position: relative; color: var(--link); cursor: pointer; font-size: 17px; }
+.addphoto input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.choose { display: grid; gap: 10px; }
+.choice { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 14px; align-items: center; text-align: left; background: var(--canvas); border: 1px solid var(--hairline); border-radius: 18px; padding: 16px; cursor: pointer; transition: transform .2s ease; width: 100%; }
+.choice:active { transform: scale(.98); }
+.choice:disabled { opacity: .45; cursor: default; transform: none; }
+.choice .ic { width: 44px; height: 44px; border-radius: 50%; background: var(--parchment); display: grid; place-items: center; color: var(--ink); }
+.choice b { display: block; font-size: 17px; font-weight: 600; }
+.choice span { font-size: 13px; color: var(--ink-48); letter-spacing: -0.08px; }
+.choice .arr { color: var(--link); font-size: 20px; }
+.confirm { background: var(--canvas); border-radius: 12px; padding: 16px; display: grid; gap: 12px; text-align: center; }
+.confirm p { margin: 0; font-size: 15px; color: var(--ink-80); }
+.confirm .btns { display: flex; gap: 8px; }
+.confirm .btns .btn { flex: 1; }
+.toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 92px; z-index: 5; background: var(--chip); color: var(--ink); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 10px 18px; border-radius: 18px; font-size: 14px; letter-spacing: -0.224px; width: max-content; max-width: calc(100% - 32px); text-align: center; }
+
+/* ---------- side notes ---------- */
+.side-notes { display: grid; gap: 48px; min-width: 0; }
+.side-notes header { display: grid; gap: 14px; }
+.side-notes .eyebrow { font-size: 17px; font-weight: 600; color: var(--ink-48); }
+.side-notes h1 { margin: 0; font-size: clamp(40px, 5vw, 56px); line-height: 1.07; font-weight: 600; letter-spacing: -0.28px; text-wrap: balance; }
+.side-notes .lead { margin: 0; font-size: 24px; font-weight: 300; line-height: 1.5; max-width: 32ch; }
+.side-notes p { margin: 0; max-width: 62ch; }
+.side-notes h2 { font-size: 28px; font-weight: 600; line-height: 1.14; letter-spacing: -0.28px; margin: 0 0 16px; }
+.side-notes a { color: var(--link); text-decoration: none; }
+.flows { display: grid; gap: 16px; }
+.flow { background: var(--canvas); border: 1px solid var(--hairline); border-radius: 18px; padding: 18px 20px; display: grid; gap: 12px; }
+.flow h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.flow ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; }
+.flow li { display: flex; align-items: center; gap: 4px; font-size: 14px; letter-spacing: -0.224px; }
+.flow li + li::before { content: "→"; color: var(--ink-48); margin-right: 4px; }
+.flow .act { border-radius: 9999px; padding: 4px 12px; background: var(--parchment); }
+.flow .app { border-radius: 9999px; padding: 3px 11px; border: 1px solid var(--primary); color: var(--link); }
+.flow p { font-size: 15px; color: var(--ink-80); }
+.rules { margin: 0; }
+.rule { display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--hairline); }
+.rule:last-child { border-bottom: 1px solid var(--hairline); }
+.rule dt { font-weight: 600; }
+.rule dd { margin: 0; color: var(--ink-80); }
+@media (max-width: 560px) { .rule { grid-template-columns: minmax(0,1fr); gap: 4px; } }
+
+/* ---------- hosting ---------- */
+body { margin: 0; }
+.stage { display: flex; justify-content: center; max-width: none; }
+.first { margin: 0 0 4px; font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
+.drawer .panel button.reset { margin-top: 24px; font-size: 14px; font-weight: 400; color: var(--danger); }
+@media (max-width: 500px) {
+  body { padding: 0; }
+  .stage { display: block; }
+  .phone { position: relative; top: 0; width: 100%; max-width: none; margin: 0; height: 100vh; height: 100dvh; min-height: 0; padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .screen { border-radius: 0 !important; }
+  .statusbar { display: none; }
+  .subnav { min-height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+  .topbar { height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+  .drawer .panel { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone" aria-label="アプリの試作">
+    <div class="screen">
+      <div class="statusbar"><span id="clock">7:42</span><span>●●● 5G</span></div>
+      <main class="view" id="view"></main>
+      <div class="dock" id="dock" hidden></div>
+      <div class="drawer" id="drawer" hidden>
+        <div class="scrim" data-act="menuClose"></div>
+        <nav class="panel" aria-label="メニュー">
+          <button data-act="tab" data-to="map">暦</button>
+          <button data-act="tab" data-to="log">飲んだ一杯</button>
+          <button data-act="tab" data-to="trend">味の傾向</button>
+          <button class="reset" data-act="resetAll">記録をすべて消す</button>
+        </nav>
+      </div>
+      <nav class="tabbar" id="tabbar" aria-label="タブ">
+        <button class="tab" id="tab-map" data-act="tab" data-to="map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>暦
+        </button>
+        <button class="tab" id="tab-log" data-act="tab" data-to="log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>飲んだ一杯
+        </button>
+      </nav>
+      <div class="toast" id="toast" hidden role="status"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DRIPPER = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 10h24l-8 14h-8z" fill="currentColor" fill-opacity=".1"/><path d="M12 10l4 10M28 10l-4 10M20 10v12" stroke-opacity=".35"/><path d="M12 27h16"/><path d="M14 27v6h12v-6" fill="currentColor" fill-opacity=".06"/><path d="M31 13h3a2 2 0 0 1 0 4h-5"/></svg>';
+const CUPICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M9 3.5c0 1 1 1.5 1 2.5M13 3.5c0 1 1 1.5 1 2.5"/></svg>';
+const KETTLE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10h10l1 9H5z"/><path d="M16 12l4-4"/><path d="M9 10V8a2 2 0 0 1 4 0v2"/></svg>';
+const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
+
+/* 味ラベル: [グループ名, 地図での短い名前, [[ラベル, 説明], ...]] */
+const FLAVORS = [
+  ['フルーティ', 'フルーツ', [['ベリー', 'いちごやブルーベリーのような甘酸っぱさ'], ['柑橘', 'レモンやオレンジの爽やかな酸味'], ['りんご', '青りんごのような軽い酸味'], ['桃・あんず', 'やわらかく甘い果実の香り'], ['トロピカル', 'マンゴーやパイナップルの濃い甘さ'], ['ぶどう', '赤ぶどうやワインのような深い果実感'], ['ドライフルーツ', 'レーズンやプルーンの凝縮した甘さ']]],
+  ['花・お茶', '花・茶', [['花の香り', 'ジャスミンのような華やかな香り'], ['紅茶っぽい', '紅茶のような軽い渋みと香り'], ['ハーブ', 'ミントやレモングラスの清涼感']]],
+  ['甘い', '甘さ', [['はちみつ', 'やさしく丸い甘さ'], ['キャラメル', '少し焦がした砂糖の甘さ'], ['黒糖', 'こくのある、黒っぽい甘さ'], ['バニラ', 'お菓子のような甘い香り']]],
+  ['ナッツ・チョコ', 'ナッツ', [['ナッツ', 'アーモンドやピーナッツの香ばしさ'], ['チョコレート', 'ミルクチョコのような甘さとほろ苦さ'], ['ココア', '粉っぽく乾いたほろ苦さ']]],
+  ['香ばしい', '香ばしさ', [['トースト', '焼いたパンのような香ばしさ'], ['スモーキー', '燻製や焚き火のような香り'], ['スパイス', 'シナモンやクローブのような刺激']]],
+  ['口当たり', '口当たり', [['軽い', 'さらっと水のように軽い'], ['なめらか', '舌ざわりがやわらかい'], ['重い', 'どっしりと厚みがある']]],
+  ['後味', '後味', [['すっきり', '飲んだあとにすっと消える'], ['長く残る', '味や香りがしばらく続く'], ['甘い余韻', '飲み込んだあとに甘さが残る']]],
+  ['気になった点', '気になる', [['酸っぱい', 'ツンとくる、尖った酸味'], ['苦い', '舌に残る強い苦み'], ['渋い', '口がきゅっとする感じ'], ['薄い', '味が弱く、水っぽい']]],
+];
+const LABEL_INFO = {};
+FLAVORS.forEach(([g, , ls]) => ls.forEach(([l, d]) => { LABEL_INFO[l] = { group: g, desc: d }; }));
+const METHODS = ['V60', 'カリタ', 'ケメックス', 'フレンチプレス', 'エアロプレス', 'その他'];
+const STEPS = { dose: [0.5, 5, 60, 'g'], temp: [1, 70, 100, '℃'], clicks: [1, 0, 60, ''] };
+const DEFAULT_BREW = { method: 'V60', dose: 15, ratio: 16, temp: 92, clicks: 24, memo: '' };
+
+/* ---------- storage ---------- */
+const KEY = 'dripnote-demo.v1';
+
+function load() { try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch {} return []; }
+let cups = load();
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(cups)); return true; }
+  catch (e) {
+    /* 容量不足のときだけ止める。保存領域が使えない環境では、この画面の中だけで続ける */
+    if (e && (e.name === 'QuotaExceededError' || e.code === 22)) { toast('保存容量がいっぱいです。写真を減らしてください'); return false; }
+    return true;
+  }
+}
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const view = $('view');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const uid = () => 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const fmtDate = (s) => { const [, m, d] = s.split('-'); return `${+m}月${+d}日`; };
+const fix1 = (n) => Math.round(n * 10) / 10;
+const water = (x) => Math.round(x.dose * x.ratio);
+const sorted = () => [...cups].sort((a, c) => (c.date + c.createdAt).localeCompare(a.date + a.createdAt));
+const tasted = () => cups.filter(c => c.taste);
+const starsHtml = (n) => n ? `<span class="stars" aria-label="${n}つ星">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>` : '';
+const thumb = (c) => c.photo ? `<img class="photo" src="${c.photo}" alt="">` : `<div class="ph">${DRIPPER}</div>`;
+const missing = (c) => !c.taste ? '味がまだ' : '';
+function counts() { const m = {}; tasted().forEach(c => c.taste.labels.forEach(l => { m[l] = (m[l] || 0) + 1; })); return m; }
+function matches(sel) {
+  if (!sel) return [];
+  const labels = sel.type === 'group' ? FLAVORS.find(f => f[0] === sel.name)[2].map(x => x[0]) : [sel.name];
+  return tasted().filter(c => c.taste.labels.some(l => labels.includes(l))).sort((a, c) => (c.taste.rating || 0) - (a.taste.rating || 0) || c.date.localeCompare(a.date));
+}
+
+/* ---------- state ---------- */
+const state = { tab: 'map', screen: 'map', cid: null, sel: null, q: '', draft: null, back: 'map', confirm: false, descLabel: null, chain: false, year: new Date().getFullYear(), justAdded: null };
+function render() {
+  const sheet = ['newCup', 'brewForm', 'tasteForm', 'record'].includes(state.screen);
+  $('tabbar').hidden = sheet; view.classList.toggle('sheet', sheet);
+  const dock = state.screen === 'map' || state.screen === 'log'; $('dock').hidden = !dock; view.classList.toggle('withdock', dock); if (dock) $('dock').innerHTML = dockHtml();
+  $('tab-map').removeAttribute('aria-current'); $('tab-log').removeAttribute('aria-current');
+  $(state.tab === 'log' ? 'tab-log' : 'tab-map').setAttribute('aria-current', 'page');
+  view.innerHTML = ({ map: mapView, log: logView, newCup: newCupView, brewForm: brewForm, tasteForm: tasteForm, record: recordView, trend: trendView })[state.screen]();
+  view.classList.toggle('plain', ['map', 'record', 'tasteForm'].includes(state.screen));
+  document.querySelectorAll('.drawer [data-to]').forEach(x => x.toggleAttribute('aria-current', x.dataset.to === state.screen));
+}
+function go(screen, opts = {}) { Object.assign(state, { confirm: false }, opts, { screen }); if (screen === 'map' && state.justAdded) state.year = thisYear(); render(); view.scrollTop = 0; if (screen === 'map') state.justAdded = null; }
+
+/* ---------- dial ---------- */
+/* 色は焙煎のグラデーション。華やか（明るい）→ 香ばしい（暗い）の順。口当たり・後味・気になった点だけの一杯は「その他」 */
+const COLOR_GROUPS = ['花・お茶', 'フルーティ', '甘い', 'ナッツ・チョコ', '香ばしい'];
+const GROUP_VAR = ['--t0', '--t1', '--t2', '--t3', '--t4'];
+function mainGroup(c) {
+  if (!c.taste) return -2;
+  const tally = COLOR_GROUPS.map(() => 0);
+  c.taste.labels.forEach(l => { const gi = COLOR_GROUPS.indexOf(LABEL_INFO[l].group); if (gi >= 0) tally[gi]++; });
+  const best = Math.max(...tally);
+  if (!best) return -1;
+  return c.taste.labels.map(l => COLOR_GROUPS.indexOf(LABEL_INFO[l].group)).find(gi => gi >= 0 && tally[gi] === best);
+}
+const toneVar = (g) => g >= 0 ? `var(${GROUP_VAR[g]})` : 'var(--neutral)';
+const yearCups = (y) => cups.filter(c => c.date.startsWith(String(y))).sort((a, b) => (a.date + a.createdAt).localeCompare(b.date + b.createdAt));
+const thisYear = () => new Date().getFullYear();
+const firstYear = () => Math.min(thisYear(), ...cups.map(c => +c.date.slice(0, 4)));
+const dayOfYear = (iso) => { const [y, m, d] = iso.split('-').map(Number); return (Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 864e5; };
+const daysIn = (y) => (Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)) / 864e5;
+
+function dialSvg(ycups, year) {
+  const R1 = 108, L = 15, GAP = 2.5, RM0 = 86, RM1 = 92, total = daysIn(year);
+  const ang = (d) => (d / total) * 2 * Math.PI - Math.PI / 2;
+  const P = (r, a) => `${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`;
+  const sel = state.sel, hit = sel ? new Set(matches(sel).map(c => c.id)) : null;
+  let s = `<svg class="dial" viewBox="-172 -172 344 344" role="img" aria-label="${year}年の文字盤。${ycups.length}杯">`;
+  /* 月ごとの傾向リング: その月の一杯の平均の明るさ */
+  for (let m = 0; m < 12; m++) {
+    const a0 = ang(dayOfYear(`${year}-${String(m + 1).padStart(2, '0')}-01`)) + .012, a1 = ang(m === 11 ? total : dayOfYear(`${year}-${String(m + 2).padStart(2, '0')}-01`)) - .012;
+    const tones = ycups.filter(c => +c.date.slice(5, 7) === m + 1).map(mainGroup).filter(g => g >= 0);
+    const avg = tones.length ? Math.round(tones.reduce((x, y) => x + y, 0) / tones.length) : null;
+    s += `<path d="M${P(RM1, a0)} A${RM1} ${RM1} 0 0 1 ${P(RM1, a1)} L${P(RM0, a1)} A${RM0} ${RM0} 0 0 0 ${P(RM0, a0)}Z" fill="${avg === null ? 'var(--divider)' : toneVar(avg)}"><title>${m + 1}月 ・ ${tones.length ? `${tones.length}杯の平均は「${COLOR_GROUPS[avg]}」寄り` : '記録なし'}</title></path>`;
+    const am = (a0 + a1) / 2;
+    s += `<text x="${(RM0 - 13) * Math.cos(am)}" y="${(RM0 - 13) * Math.sin(am) + 3.5}" text-anchor="middle" font-size="10" fill="var(--ink-48)">${m + 1}</text>`;
+  }
+  /* 今日の針（今年だけ） */
+  if (year === thisYear()) {
+    const t = new Date(), a = ang(dayOfYear(`${year}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`) + .5);
+    s += `<line x1="${P(48, a).split(' ')[0]}" y1="${P(48, a).split(' ')[1]}" x2="${P(R1 + 3 * (L + GAP) + 4, a).split(' ')[0]}" y2="${P(R1 + 3 * (L + GAP) + 4, a).split(' ')[1]}" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1"/>`;
+    s += `<circle cx="${P(R1 + 3 * (L + GAP) + 7, a).split(' ')[0]}" cy="${P(R1 + 3 * (L + GAP) + 7, a).split(' ')[1]}" r="2.5" fill="var(--ink)" fill-opacity=".6"><title>今日</title></circle>`;
+  }
+  /* 一杯ごとの目盛り。同じ日に2杯以上なら外へ重ねる */
+  const stack = {};
+  ycups.forEach((c) => {
+    const d = dayOfYear(c.date), k = stack[d] = (stack[d] || 0) + 1, a = ang(d + .5);
+    if (k > 3) return;
+    const r0 = R1 + (k - 1) * (L + GAP), r1 = r0 + L, g = mainGroup(c), dim = hit && !hit.has(c.id);
+    const [x0, y0] = P(r0, a).split(' '), [x1, y1] = P(r1, a).split(' ');
+    const label = `${fmtDate(c.date)} ${esc(c.bean)}｜${c.taste ? esc(c.taste.labels.join('・')) || 'メモのみ' : '味がまだ'}`;
+    s += `<g class="tick${state.justAdded === c.id ? ' grow' : ''}" data-act="open" data-id="${c.id}" opacity="${dim ? .13 : 1}"><title>${label}</title>`
+      + `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="transparent" stroke-width="9"/>`
+      + (g === -2
+        ? `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="var(--ink-48)" stroke-width="1.6" stroke-dasharray="2.2 2.2"/>`
+        : `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${toneVar(g)}" stroke-width="3" stroke-linecap="round"/>`)
+      + `</g>`;
+  });
+  s += `<text y="2" text-anchor="middle" font-size="44" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${ycups.length}</text>`;
+  s += `<text y="24" text-anchor="middle" font-size="12" fill="var(--ink-48)">杯</text>`;
+  return s + '</svg>';
+}
+
+/* ---------- 記録の入口（＋）と、味がまだの一杯 ---------- */
+function dockHtml() {
+  const recent = (c) => (Date.now() - new Date(c.date + 'T00:00').getTime()) / 864e5 <= 3;
+  const pend = sorted().filter(c => !c.taste && recent(c)), p = pend[0];
+  return `<div class="dock-row">
+    ${p ? `<button class="dock-pend" data-act="resume" data-id="${p.id}">
+      <span class="dotmark"></span>
+      <span class="txt"><b>${esc(p.bean)}</b><span>${fmtDate(p.date)} ・ 味がまだ${pend.length > 1 ? `（ほか${pend.length - 1}杯）` : ''}</span></span>
+      <span class="go">味を足す ›</span>
+    </button>` : '<span></span>'}
+    <button class="fab" data-act="newCup" aria-label="一杯を記録"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>`;
+}
+
+/* ---------- 一杯を記録（1枚の画面で、味も淹れ方も任意） ---------- */
+function brewPrefill(bean) {
+  const prev = sorted().filter(x => x.brew), same = prev.find(x => x.bean === bean), src = same || prev[0];
+  return src ? { ...src.brew, memo: '', _from: `${same ? '同じ豆の' : '前回'}（${fmtDate(src.date)}）` } : { ...DEFAULT_BREW };
+}
+const tgtB = () => state.screen === 'record' ? state.draft.brew : state.draft;
+const tgtT = () => state.screen === 'record' ? state.draft.taste : state.draft;
+/* ---------- 記録画面（ミニマル） ---------- */
+const closeBtn = (act) => `<button class="menu-btn" data-act="${act}" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+const CAMERA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="18" height="13" rx="2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6.5l1.4-2h4.2l1.4 2"/></svg>';
+/* 味の入力: 星・ラベル・メモだけ。グループ名は出さず、余白で区切る */
+function tasteFields(t) {
+  const dl = state.descLabel;
+  return `
+    <div class="mstars" role="group" aria-label="評価" id="ratingBox">${ratingBtns(t.rating)}</div>
+    <div class="flav">${FLAVORS.map(([g, , ls]) => `<div class="fg" role="group" aria-label="${g}">${ls.map(([l]) => `<button type="button" class="lab" data-act="toggleLabel" data-name="${l}" aria-pressed="${t.labels.includes(l)}">${l}</button>`).join('')}</div>`).join('')}</div>
+    <p class="mdesc" id="desc" aria-live="polite">${dl ? `<b>${dl}</b><span>${LABEL_INFO[dl].desc}</span>` : ''}</p>
+    <textarea class="mmemo" id="f-tmemo" data-f="${state.screen === 'record' ? 't.memo' : 'memo'}" placeholder="メモ" rows="2">${esc(t.memo)}</textarea>`;
+}
+function openCup(id) {
+  const c = cups.find(x => x.id === id); if (!c) return;
+  const from = ['map', 'log', 'trend'].includes(state.screen) ? state.screen : 'map';
+  go('record', { cid: c.id, back: from, descLabel: null, draft: {
+    id: c.id, bean: c.bean, date: c.date, photo: c.photo,
+    taste: c.taste ? structuredClone(c.taste) : { rating: 0, labels: [], memo: '' },
+    brewOn: !!c.brew, brew: c.brew ? { ...c.brew } : null } });
+}
+function recordView() {
+  const d = state.draft, b = d.brew;
+  return `
+  <div class="topbar sticky">${closeBtn('cancelRecord')}</div>
+  <form class="mform" onsubmit="return false">
+    <div class="rhead">
+      <div class="rmeta">
+        <input id="f-bean" class="beanin" type="text" data-f="bean" value="${esc(d.bean)}" placeholder="豆の名前" autocomplete="off" aria-label="豆の名前">
+        <input id="f-date" class="datein" type="date" data-f="date" value="${d.date}" aria-label="日付">
+      </div>
+    </div>
+    ${recentBeans().length ? `<div class="mrecent" role="group" aria-label="最近の豆">${recentBeans().map(n => `<button type="button" class="lab" data-act="pickBean" data-name="${esc(n)}" aria-pressed="${d.bean === n}">${esc(n)}</button>`).join('')}</div>` : ''}
+    <hr>
+    ${tasteFields(d.taste)}
+    <hr>
+    ${d.brewOn ? `
+    <div class="mbrew">
+      <div class="mbrew-head"><span>淹れ方</span><button type="button" class="menu-btn sm" data-act="brewOff" aria-label="淹れ方を外す"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="methods" role="group" aria-label="器具">${METHODS.map(m => `<button type="button" class="lab" data-act="method" data-m="${m}" aria-pressed="${b.method === m}">${m}</button>`).join('')}</div>
+      <div class="mrows">
+        ${stepperRow('dose', b.dose, '豆')}
+        <div class="row col"><div class="top"><label for="f-ratio">比率</label><span class="val" id="out-ratio">1 : ${b.ratio}</span></div><input type="range" id="f-ratio" data-f="ratio" min="10" max="20" step="0.1" value="${b.ratio}"></div>
+        <div class="row"><span class="lbl">お湯</span><output class="val strong" id="out-water">${water(b)}<small> g</small></output></div>
+        ${stepperRow('temp', b.temp, '温度')}${stepperRow('clicks', b.clicks, 'クリック')}
+      </div>
+      <textarea class="mmemo" id="f-bmemo" data-f="b.memo" placeholder="メモ" rows="2">${esc(b.memo)}</textarea>
+    </div>` : `<button type="button" class="addrow" data-act="brewOn">＋ 淹れ方</button>`}
+    ${d.id ? `<div style="padding-top:8px">${deleteBlock('この一杯の記録を削除します。元に戻せません。', 'deleteCup', '削除')}</div>` : ''}
+  </form>
+  <div class="mfoot"><button type="button" class="btn block lgbtn" data-act="saveRecord" ${d.bean.trim() ? '' : 'disabled'}>${d.id ? '保存' : '記録'}</button></div>`;
+}
+function tasteForm() {
+  const d = state.draft, c = cups.find(x => x.id === state.cid);
+  return `
+  <div class="topbar sticky">${closeBtn('cancelForm')}<span class="tb-cap">${esc(c.bean)} ・ ${fmtDate(c.date)}</span></div>
+  <form class="mform" onsubmit="return false">${tasteFields(d)}</form>
+  <div class="mfoot"><button type="button" class="btn block lgbtn" data-act="saveTaste" id="saveBtn" ${canSaveTaste(d) ? '' : 'disabled'}>保存</button></div>`;
+}
+
+/* ---------- views ---------- */
+const menuBtn = () => `<button class="menu-btn" data-act="menu" aria-label="メニュー"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>`;
+function mapView() {
+  const y = state.year, ycups = yearCups(y), sel = state.sel, list = matches(sel);
+  return `
+  <div class="topbar">${menuBtn()}</div>
+  <section class="dialtile">
+    <div class="yearnav">
+      <button class="yr" data-act="year" data-d="-1" aria-label="前の年" ${y <= firstYear() ? 'disabled' : ''}>‹</button>
+      <b class="yname">${y}</b>
+      <button class="yr" data-act="year" data-d="1" aria-label="次の年" ${y >= thisYear() ? 'disabled' : ''}>›</button>
+    </div>
+    ${dialSvg(ycups, y)}
+    ${cups.length ? '' : '<p class="first">右下の＋から、最初の一杯を記録</p>'}
+    <div class="dlegend" role="group" aria-label="味で絞る">
+      ${COLOR_GROUPS.map((g, i) => `<button class="key" data-act="pick" data-type="group" data-name="${g}" aria-pressed="${!!(sel && sel.type === 'group' && sel.name === g)}"><i style="background:var(${GROUP_VAR[i]})"></i>${g}</button>`).join('')}
+    </div>
+  </section>
+  ${sel ? `
+    <div class="selhead"><span>${esc(sel.name)} ・ ${list.length}杯</span><button class="textbtn sm" data-act="clearSel">解除</button></div>
+    ${list.length ? `<div class="cups">${list.slice(0, 30).map(cupRow).join('')}</div>` : `<div class="empty">まだありません</div>`}` : ''}`;
+}
+function trendView() {
+  const tasted = cups.filter(c => c.taste);
+  const cnt = {}; tasted.forEach(c => c.taste.labels.forEach(l => { cnt[l] = (cnt[l] || 0) + 1; }));
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const fav = {}; tasted.filter(c => c.taste.rating >= 4).forEach(c => c.taste.labels.forEach(l => { if (LABEL_INFO[l].group !== '気になった点') fav[l] = (fav[l] || 0) + 1; }));
+  const favTop = Object.entries(fav).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
+  return `
+  <div class="subnav">${menuBtn()}<h1>味の傾向</h1></div>
+  ${favTop.length ? `<h2 class="section-title">好きかもしれない味</h2><div class="prefs"><span class="k">★4以上の一杯によく付いている味</span><div class="chips">${favTop.map(l => `<button class="lab" data-act="pickLabel" data-name="${l}">${l}</button>`).join('')}</div></div>` : ''}
+  <h2 class="section-title">よく出会った味</h2>
+  ${top.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 20px">${top.map(([l, n]) => `<button class="lab" data-act="pickLabel" data-name="${l}">${l} ${n}</button>`).join('')}</div>` : '<div class="empty">まだありません</div>'}`;
+}
+function cupRow(c) {
+  return `<button class="cup" data-act="open" data-id="${c.id}">
+    <span class="t"><b>${esc(c.bean)}</b><span class="m">${c.taste ? esc(c.taste.labels.join('・')) || '味のメモのみ' : '味はまだ記録していません'}</span><span class="m">${fmtDate(c.date)}${c.brew ? ` ・ ${c.brew.method} ${c.brew.dose}g` : ''}</span></span>
+    <span class="r">${c.taste ? starsHtml(c.taste.rating) : ''}${missing(c) ? `<span class="badge">${missing(c)}</span>` : ''}</span>
+  </button>`;
+}
+function logView() {
+  const q = state.q.trim().toLowerCase();
+  const list = sorted().filter(c => !q || (c.bean + (c.taste ? c.taste.labels.join('') + c.taste.memo : '')).toLowerCase().includes(q));
+  const byMonth = {}; list.forEach(c => { const k = c.date.slice(0, 7); (byMonth[k] = byMonth[k] || []).push(c); });
+  return `
+  <div class="subnav">${menuBtn()}<h1>飲んだ一杯</h1></div>
+  <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="text" placeholder="豆の名前・味・メモで探す" value="${esc(state.q)}" aria-label="検索"></label>
+  <div id="logList">${logList(byMonth)}</div>
+`;
+}
+function logList(byMonth) {
+  const keys = Object.keys(byMonth);
+  if (!cups.length) return `<div class="empty" style="margin-top:16px"><span>まだ記録がありません。</span><button class="btn small" data-act="newCup">一杯を記録</button></div>`;
+  if (!keys.length) return `<div class="empty" style="margin-top:16px">見つかりませんでした。</div>`;
+  return keys.map(k => { const [y, m] = k.split('-'); return `<p class="month">${y}年${+m}月 ・ ${byMonth[k].length}杯</p><div class="cups">${byMonth[k].map(cupRow).join('')}</div>`; }).join('');
+}
+
+function deleteBlock(msg, act, label) {
+  return state.confirm
+    ? `<div class="confirm"><p>${msg}</p><div class="btns"><button type="button" class="btn ghost" data-act="cancelDelete">やめる</button><button type="button" class="btn solid-danger" data-act="${act}">削除する</button></div></div>`
+    : `<button type="button" class="btn danger block" data-act="askDelete">${label}</button>`;
+}
+
+/* ---------- new cup / edit basics ---------- */
+function recentBeans() { const seen = []; sorted().forEach(c => { if (!seen.includes(c.bean)) seen.push(c.bean); }); return seen.slice(0, 6); }
+function newCupView() {
+  const d = state.draft, edit = !!d.id;
+  return `
+  <div class="subnav center">
+    <div class="side"><button class="textbtn" data-act="cancel">キャンセル</button></div>
+    <h1>${edit ? '一杯を編集' : d.mode === 'brew' ? '淹れながら記録' : d.mode === 'taste' ? '飲んだ味を記録' : '一杯を記録'}</h1>
+    <div class="side">${edit ? `<button class="textbtn strong" data-act="saveBasics" id="saveBtn" ${d.bean.trim() ? '' : 'disabled'}>保存</button>` : ''}</div>
+  </div>
+  <form class="form" onsubmit="return false">
+    <div>
+      <div class="group">
+        <div class="row"><label for="f-bean">豆の名前</label><input id="f-bean" type="text" data-f="bean" value="${esc(d.bean)}" placeholder="エチオピア 浅煎り" autocomplete="off"></div>
+        ${recentBeans().length ? `<div class="recent" role="group" aria-label="最近の豆">${recentBeans().map(n => `<button type="button" class="lab" data-act="pickBean" data-name="${esc(n)}" aria-pressed="${d.bean === n}">${esc(n)}</button>`).join('')}</div>` : ''}
+        <div class="row"><label for="f-date">日付</label><input id="f-date" type="date" data-f="date" value="${d.date}"></div>
+      </div>
+    </div>
+    <div>
+      <p class="group-label">写真（豆の袋やカップ）</p>
+      <div class="group"><div class="photo-row" id="photoRow">${photoRow(d)}</div></div>
+    </div>
+    ${edit ? '' : d.mode ? `
+    <div>
+      <button type="button" class="btn block lgbtn" data-act="startWith" data-with="${d.mode}" ${d.bean.trim() ? '' : 'disabled'}>${d.mode === 'brew' ? '淹れ方を記録する' : '味を記録する'}</button>
+      <p class="group-foot" id="beanFoot" ${d.bean.trim() ? 'hidden' : ''}>豆の名前を入れると進めます。</p>
+      <p class="group-foot" style="text-align:center"><button type="button" class="textbtn sm" data-act="switchMode">${d.mode === 'brew' ? 'もう飲んだ → 味から記録する' : 'いま淹れている → 淹れ方から記録する'}</button></p>
+    </div>` : `
+    <div>
+      <p class="group-label">どちらから記録しますか？</p>
+      <div class="choose">
+        <button type="button" class="choice" data-act="startWith" data-with="brew" ${d.bean.trim() ? '' : 'disabled'}><span class="ic">${KETTLE}</span><span><b>淹れ方から</b><span>いま淹れている。味は飲んでから足す</span></span><span class="arr">›</span></button>
+        <button type="button" class="choice" data-act="startWith" data-with="taste" ${d.bean.trim() ? '' : 'disabled'}><span class="ic">${CUPICON}</span><span><b>味から</b><span>もう飲んだ。淹れ方はあとで思い出して足す</span></span><span class="arr">›</span></button>
+      </div>
+      <p class="group-foot" id="beanFoot" ${d.bean.trim() ? 'hidden' : ''}>豆の名前を入れると選べます。</p>
+    </div>`}
+  </form>`;
+}
+function photoRow(d) {
+  return d.photo
+    ? `<div class="photo-slot"><img class="photo" src="${d.photo}" alt="選んだ写真"><button type="button" class="rm" data-act="rmPhoto" aria-label="写真を外す">×</button></div><span style="font-size:14px;color:var(--ink-48)">1枚まで</span>`
+    : `<div class="photo-slot"><div class="ph">${DRIPPER}</div></div><label class="addphoto">写真を選ぶ<input id="f-photo" type="file" accept="image/*"></label>`;
+}
+
+/* ---------- brew form ---------- */
+function stepperRow(f, v, label) {
+  const unit = STEPS[f][3];
+  return `<div class="row"><span class="lbl" id="lbl-${f}">${label}</span><div class="stepper" role="group" aria-labelledby="lbl-${f}">
+    <button type="button" class="step" data-act="step" data-f="${f}" data-d="-1" aria-label="${label}を減らす">−</button>
+    <output id="out-${f}">${v}${unit ? `<small> ${unit}</small>` : ''}</output>
+    <button type="button" class="step" data-act="step" data-f="${f}" data-d="1" aria-label="${label}を増やす">＋</button></div></div>`;
+}
+function brewForm() {
+  const d = state.draft, c = cups.find(x => x.id === state.cid);
+  return `
+  <div class="subnav center">
+    <div class="side"><button class="textbtn" data-act="cancelForm">${state.chain ? 'あとで' : 'キャンセル'}</button></div>
+    <h1>淹れ方</h1>
+    <div class="side"><button class="textbtn strong" data-act="saveBrew">保存</button></div>
+  </div>
+  <form class="form" onsubmit="return false">
+    <p class="group-foot" style="margin-top:0">${esc(c.bean)} ・ ${fmtDate(c.date)}　${d._from ? `<br>${d._from}の淹れ方を入れています。違うところだけ直してください。` : ''}</p>
+    <div>
+      <p class="group-label">器具</p>
+      <div class="group"><div class="methods" role="group" aria-label="器具">${METHODS.map(m => `<button type="button" class="lab" data-act="method" data-m="${m}" aria-pressed="${d.method === m}">${m}</button>`).join('')}</div></div>
+    </div>
+    <div>
+      <p class="group-label">分量</p>
+      <div class="group">
+        ${stepperRow('dose', d.dose, '豆')}
+        <div class="row col"><div class="top"><label for="f-ratio">比率</label><span class="val" id="out-ratio">1 : ${d.ratio}</span></div>
+          <input type="range" id="f-ratio" data-f="ratio" min="10" max="20" step="0.1" value="${d.ratio}">
+          <div class="scale"><span>濃い 1:10</span><span>1:20 軽い</span></div></div>
+      </div>
+      <div class="water" aria-live="polite"><div class="l"><b>お湯の量</b>豆 × 比率で自動計算</div><output id="out-water">${water(d)}<small> g</small></output></div>
+    </div>
+    <div>
+      <p class="group-label">抽出条件</p>
+      <div class="group">${stepperRow('temp', d.temp, '温度')}${stepperRow('clicks', d.clicks, 'クリック数')}</div>
+      <p class="group-foot">クリック数はミルの目盛り（ゼロ点から何クリック戻したか）。</p>
+    </div>
+    <div>
+      <p class="group-label">メモ</p>
+      <div class="group"><textarea id="f-bmemo" data-f="memo" placeholder="蒸らし時間、注ぎ方など">${esc(d.memo)}</textarea></div>
+    </div>
+  </form>`;
+}
+
+/* ---------- taste form ---------- */
+const canSaveTaste = (d) => d.rating || d.labels.length || d.memo.trim();
+const ratingBtns = (v) => [1, 2, 3, 4, 5].map(n => `<button type="button" class="star ${n <= v ? 'on' : ''}" data-act="rate" data-v="${n}" aria-label="${n}つ星" aria-pressed="${n === v}">${STAR}</button>`).join('');
+
+/* ---------- flows ---------- */
+function brewDraftFor(c) {
+  if (c.brew) return { ...c.brew };
+  const prev = sorted().filter(x => x.brew && x.id !== c.id);
+  const same = prev.find(x => x.bean === c.bean);
+  const src = same || prev[0];
+  return src ? { ...src.brew, memo: '', _from: `${same ? '同じ豆の' : '前回'}（${fmtDate(src.date)}）` } : { ...DEFAULT_BREW };
+}
+const tasteDraftFor = (c) => c.taste ? structuredClone(c.taste) : { rating: 0, labels: [], memo: '' };
+function openBrew(chain = false) { const c = cups.find(x => x.id === state.cid); go('brewForm', { draft: brewDraftFor(c), chain }); }
+function openTaste(chain = false) { const c = cups.find(x => x.id === state.cid); go('tasteForm', { draft: tasteDraftFor(c), chain, descLabel: null }); }
+
+function resize(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const s = Math.min(1, 1000 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); resolve(cv.toDataURL('image/jpeg', 0.78)); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+    img.src = url;
+  });
+}
+function toast(msg) { const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { el.hidden = true; }, 2800); }
+function save(mutate, onFail) { const prev = structuredClone(cups); mutate(); if (!persist()) { cups = prev; onFail && onFail(); return false; } return true; }
+
+/* ---------- events ---------- */
+function handle(el) {
+  const a = el.dataset.act, d = state.draft;
+  switch (a) {
+    case 'menu': $('drawer').hidden = false; break;
+    case 'resetAll': {
+      if (!el.dataset.armed) { el.dataset.armed = '1'; el.textContent = 'もう一度押すと消えます'; setTimeout(() => { delete el.dataset.armed; el.textContent = '記録をすべて消す'; }, 3000); break; }
+      cups = []; persist(); delete el.dataset.armed; el.textContent = '記録をすべて消す';
+      $('drawer').hidden = true; state.sel = null; state.year = thisYear(); go('map'); toast('記録をすべて消しました'); break;
+    }
+    case 'menuClose': $('drawer').hidden = true; break;
+    case 'tab': $('drawer').hidden = true; state.tab = el.dataset.to; go(el.dataset.to, { sel: el.dataset.to === 'map' ? state.sel : state.sel }); break;
+    case 'pick': {
+      const s = { type: el.dataset.type, name: el.dataset.name };
+      state.sel = state.sel && state.sel.type === s.type && state.sel.name === s.name ? null : s;
+      const st = view.scrollTop; render(); view.scrollTop = st; break;
+    }
+    case 'pickLabel': state.tab = 'map'; go('map', { sel: { type: 'label', name: el.dataset.name } }); view.scrollTop = 0; break;
+    case 'clearSel': state.sel = null; render(); break;
+    case 'year': state.year = Math.min(thisYear(), Math.max(firstYear(), state.year + +el.dataset.d)); { const st = view.scrollTop; render(); view.scrollTop = st; } break;
+    case 'open': openCup(el.dataset.id); break;
+    case 'back': go(state.back || 'map'); break;
+    case 'resume': openCup(el.dataset.id); break;
+    case 'newCup': go('record', { back: state.screen, descLabel: null, draft: { bean: '', date: today(), photo: null, taste: { rating: 0, labels: [], memo: '' }, brewOn: false, brew: null } }); break;
+    case 'cancelRecord': go(state.back || 'map'); break;
+    case 'brewOn': { d.brewOn = true; d.brew = brewPrefill(d.bean.trim()); const st = view.scrollTop; render(); view.scrollTop = st; break; }
+    case 'brewOff': { d.brewOn = false; const st = view.scrollTop; render(); view.scrollTop = st; break; }
+    case 'saveRecord': {
+      if (!d.bean.trim()) return;
+      const t = d.taste, filled = t.rating || t.labels.length || t.memo.trim();
+      const fields = { date: d.date || today(), bean: d.bean.trim(),
+        taste: filled ? { rating: t.rating, labels: [...t.labels], memo: t.memo.trim() } : null,
+        brew: d.brewOn ? { method: d.brew.method, dose: d.brew.dose, ratio: d.brew.ratio, temp: d.brew.temp, clicks: d.brew.clicks, memo: (d.brew.memo || '').trim() } : null };
+      if (d.id) {
+        const old = cups.find(x => x.id === d.id), hadTaste = !!old.taste;
+        if (!save(() => Object.assign(old, fields))) return;
+        if (!hadTaste && filled) state.justAdded = old.id;
+        go(state.back || 'map'); toast('保存しました'); break;
+      }
+      const c = { id: uid(), createdAt: new Date().toISOString(), ...fields };
+      if (!save(() => cups.push(c))) return;
+      state.justAdded = c.id; state.tab = 'map'; state.sel = null; go('map');
+      toast(filled ? '記録しました' : '記録しました。飲んだら「味を足す」から味を残せます');
+      break;
+    }
+    case 'switchMode': d.mode = d.mode === 'brew' ? 'taste' : 'brew'; render(); break;
+    case 'editCup': { const c = cups.find(x => x.id === state.cid); go('newCup', { draft: { id: c.id, bean: c.bean, date: c.date, photo: c.photo } }); break; }
+    case 'cancel': go(state.back || 'map'); break;
+    case 'pickBean': d.bean = el.dataset.name; $('f-bean').value = d.bean; refreshBean(); break;
+    case 'rmPhoto': d.photo = null; $('photoRow').innerHTML = photoRow(d); break;
+    case 'rmPhotoR': { d.photo = null; const st = view.scrollTop; render(); view.scrollTop = st; break; }
+    case 'startWith': {
+      if (!d.bean.trim()) return;
+      const c = { id: uid(), date: d.date || today(), bean: d.bean.trim(), photo: d.photo, brew: null, taste: null, createdAt: new Date().toISOString() };
+      if (!save(() => cups.push(c))) return;
+      state.cid = c.id; state.back = 'map';
+      el.dataset.with === 'brew' ? openBrew() : openTaste(true);
+      break;
+    }
+    case 'saveBasics': {
+      if (!d.bean.trim()) return;
+      if (!save(() => { const c = cups.find(x => x.id === d.id); Object.assign(c, { bean: d.bean.trim(), date: d.date || c.date, photo: d.photo }); })) return;
+      go(state.back || 'map'); toast('更新しました'); break;
+    }
+    case 'cancelForm': {
+      const c = cups.find(x => x.id === state.cid);
+      if (!c.brew && !c.taste && !c.photo) { save(() => { cups = cups.filter(x => x.id !== c.id); }); go('map'); break; }
+      go(state.back || 'map'); break;
+    }
+    case 'method': { const B = tgtB(); B.method = el.dataset.m; view.querySelectorAll('[data-act="method"]').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === B.method)); break; }
+    case 'step': {
+      const f = el.dataset.f, [inc, min, max, unit] = STEPS[f], B = tgtB();
+      B[f] = fix1(Math.min(max, Math.max(min, B[f] + inc * +el.dataset.d)));
+      $('out-' + f).innerHTML = `${B[f]}${unit ? `<small> ${unit}</small>` : ''}`;
+      if (f === 'dose') $('out-water').innerHTML = `${water(B)}<small> g</small>`;
+      break;
+    }
+    case 'saveBrew': {
+      const c = cups.find(x => x.id === state.cid), brew = { method: d.method, dose: d.dose, ratio: d.ratio, temp: d.temp, clicks: d.clicks, memo: (d.memo || '').trim() };
+      if (!save(() => { c.brew = brew; })) return;
+      go(state.back || 'map'); toast(c.taste ? '淹れ方を記録しました' : '淹れ方を記録しました。飲んだら「味を記録」へ'); break;
+    }
+    case 'rate': { const T = tgtT(); T.rating = T.rating === +el.dataset.v ? 0 : +el.dataset.v; $('ratingBox').innerHTML = ratingBtns(T.rating); updateSave(); break; }
+    case 'toggleLabel': {
+      const T = tgtT(), l = el.dataset.name, i = T.labels.indexOf(l);
+      i >= 0 ? T.labels.splice(i, 1) : T.labels.push(l);
+      el.setAttribute('aria-pressed', i < 0); state.descLabel = l;
+      $('desc').innerHTML = `<b>${l}</b><span>${LABEL_INFO[l].desc}</span>`;
+      const lc = $('labCount'); if (lc) lc.textContent = T.labels.length ? `${T.labels.length}個選択中` : '';
+      updateSave(); break;
+    }
+    case 'saveTaste': {
+      if (!canSaveTaste(d)) return;
+      const c = cups.find(x => x.id === state.cid), chainNext = state.chain && !c.brew;
+      if (!c.taste) state.justAdded = c.id;
+      if (!save(() => { c.taste = { rating: d.rating, labels: [...d.labels], memo: (d.memo || '').trim() }; })) return;
+      if (chainNext) { openBrew(true); toast('味を記録しました。淹れ方も残しますか？'); }
+      else { go(state.back || 'map'); toast('味を記録しました'); }
+      break;
+    }
+    case 'brewForm': openBrew(); break;
+    case 'tasteForm': openTaste(); break;
+    case 'askDelete': state.confirm = true; render(); view.scrollTop = view.scrollHeight; break;
+    case 'cancelDelete': state.confirm = false; render(); view.scrollTop = view.scrollHeight; break;
+    case 'deleteCup': save(() => { cups = cups.filter(x => x.id !== state.cid); }); go(state.back || 'map'); toast('削除しました'); break;
+    case 'clearSamples': save(() => { cups = cups.filter(x => !x.sample); }); state.sel = null; render(); toast('サンプルを消しました'); break;
+  }
+}
+function refreshBean() {
+  const d = state.draft, ok = !!d.bean.trim();
+  view.querySelectorAll('[data-act="startWith"]').forEach(x => { x.disabled = !ok; });
+  const foot = $('beanFoot'); if (foot) foot.hidden = ok;
+  const sb = $('saveBtn'); if (sb && state.screen === 'newCup') sb.disabled = !ok;
+  view.querySelectorAll('[data-act="saveRecord"]').forEach(x => { x.disabled = !ok; });
+  view.querySelectorAll('[data-act="pickBean"]').forEach(x => x.setAttribute('aria-pressed', x.dataset.name === d.bean));
+}
+function updateSave() { const sb = $('saveBtn'); if (sb && state.screen === 'tasteForm') sb.disabled = !canSaveTaste(state.draft); }
+
+document.addEventListener('click', (ev) => { const el = ev.target.closest('[data-act]'); if (el) handle(el); });
+document.addEventListener('keydown', (ev) => {
+  const el = ev.target.closest && ev.target.closest('g[data-act]');
+  if (el && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); handle(el); }
+});
+document.addEventListener('input', (ev) => {
+  const tg = ev.target;
+  if (tg.id === 'q') {
+    state.q = tg.value; const q = tg.value.trim().toLowerCase();
+    const list = sorted().filter(c => !q || (c.bean + (c.taste ? c.taste.labels.join('') + c.taste.memo : '')).toLowerCase().includes(q));
+    const byMonth = {}; list.forEach(c => { const k = c.date.slice(0, 7); (byMonth[k] = byMonth[k] || []).push(c); });
+    $('logList').innerHTML = logList(byMonth); return;
+  }
+  const f = tg.dataset.f; if (!f || !state.draft) return;
+  if (f === 'ratio') { const B = tgtB(); B.ratio = fix1(+tg.value); $('out-ratio').textContent = `1 : ${B.ratio}`; $('out-water').innerHTML = `${water(B)}<small> g</small>`; }
+  else if (f.startsWith('t.')) state.draft.taste[f.slice(2)] = tg.value;
+  else if (f.startsWith('b.')) state.draft.brew[f.slice(2)] = tg.value;
+  else { state.draft[f] = tg.value; if (f === 'bean') refreshBean(); if (state.screen === 'tasteForm') updateSave(); }
+});
+document.addEventListener('change', async (ev) => {
+  if (ev.target.id !== 'f-photo' || !ev.target.files[0]) return;
+  try { state.draft.photo = await resize(ev.target.files[0]); } catch { toast('この画像は読み込めませんでした'); }
+  if (state.screen === 'record') { const st = view.scrollTop; render(); view.scrollTop = st; } else $('photoRow').innerHTML = photoRow(state.draft);
+});
+
+const now = new Date();
+$('clock').textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+render();
+</script>
+</body>
+</html>
