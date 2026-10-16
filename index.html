@@ -489,7 +489,38 @@ function render() {
   view.classList.toggle('plain', ['map', 'record', 'tasteForm'].includes(state.screen));
   document.querySelectorAll('.drawer [data-to]').forEach(x => x.toggleAttribute('aria-current', x.dataset.to === state.screen));
 }
-function go(screen, opts = {}) { Object.assign(state, { confirm: false }, opts, { screen }); if (screen === 'map' && state.justAdded) state.year = thisYear(); render(); view.scrollTop = 0; if (screen === 'map') state.justAdded = null; }
+function go(screen, opts = {}) {
+  Object.assign(state, { confirm: false }, opts, { screen });
+  if (screen === 'map' && state.justAdded) state.year = thisYear();
+  render(); view.scrollTop = 0;
+  if (screen === 'map') { if (state.celebrate) playCelebrate(state.celebrate); state.justAdded = null; }
+  state.celebrate = null;
+}
+/* 記録の合図: 中央が「✓ 記録しました」に変わる → 今日の目盛りが刻まれて杯数が上がる */
+function playCelebrate(label) {
+  const svg = view.querySelector('.dial'); if (!svg) { toast(label); return; }
+  const center = svg.querySelector('#dialCenter'), check = svg.querySelector('#dialCheck'), num = svg.querySelector('#dialNum'), tick = svg.querySelector('#newTick');
+  const mark = check.querySelector('path'), finalCount = num.textContent;
+  check.querySelector('text').textContent = label;
+  check.setAttribute('aria-hidden', 'false'); check.setAttribute('role', 'status');
+  num.style.transformBox = 'fill-box'; num.style.transformOrigin = 'center';
+  if (tick) num.textContent = String(+finalCount - 1);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    center.setAttribute('opacity', 0); check.setAttribute('opacity', 1); mark.setAttribute('stroke-dashoffset', 0);
+    setTimeout(() => { check.setAttribute('opacity', 0); center.setAttribute('opacity', 1); num.textContent = finalCount; }, 1200);
+    return;
+  }
+  const D = 1700;
+  center.animate([{ opacity: 1 }, { opacity: 0, offset: .1 }, { opacity: 0, offset: .7 }, { opacity: 1, offset: .8 }, { opacity: 1 }], { duration: D, fill: 'both' });
+  check.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)', offset: .16 }, { opacity: 1, offset: .62 }, { opacity: 0, transform: 'scale(.92)', offset: .72 }, { opacity: 0 }], { duration: D, easing: 'ease-out', fill: 'both' });
+  mark.animate([{ strokeDashoffset: 32 }, { strokeDashoffset: 32, offset: .08 }, { strokeDashoffset: 0, offset: .36 }, { strokeDashoffset: 0 }], { duration: D, fill: 'both' });
+  if (tick) {
+    const line = tick.querySelectorAll('line')[1], dashed = line.getAttribute('stroke-dasharray');
+    if (dashed) line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 1150, fill: 'both' });
+    else { line.setAttribute('stroke-dasharray', 15); line.animate([{ strokeDashoffset: 15 }, { strokeDashoffset: 0 }], { duration: 420, delay: 1150, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' }); }
+    setTimeout(() => { num.textContent = finalCount; num.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'cubic-bezier(.2,1.4,.4,1)' }); }, 1300);
+  }
+}
 
 /* ---------- dial ---------- */
 /* 色は焙煎のグラデーション。華やか（明るい）→ 香ばしい（暗い）の順。口当たり・後味・気になった点だけの一杯は「その他」 */
@@ -539,15 +570,17 @@ function dialSvg(ycups, year) {
     const r0 = R1 + (k - 1) * (L + GAP), r1 = r0 + L, g = mainGroup(c), dim = hit && !hit.has(c.id);
     const [x0, y0] = P(r0, a).split(' '), [x1, y1] = P(r1, a).split(' ');
     const label = `${fmtDate(c.date)} ${esc(c.bean)}｜${c.taste ? esc(c.taste.labels.join('・')) || 'メモのみ' : '味がまだ'}`;
-    s += `<g class="tick${state.justAdded === c.id ? ' grow' : ''}" data-act="open" data-id="${c.id}" opacity="${dim ? .13 : 1}"><title>${label}</title>`
+    s += `<g class="tick"${state.justAdded === c.id ? ' id="newTick"' : ''} data-act="open" data-id="${c.id}" opacity="${dim ? .13 : 1}"><title>${label}</title>`
       + `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="transparent" stroke-width="9"/>`
       + (g === -2
         ? `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="var(--ink-48)" stroke-width="1.6" stroke-dasharray="2.2 2.2"/>`
         : `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${toneVar(g)}" stroke-width="3" stroke-linecap="round"/>`)
       + `</g>`;
   });
-  s += `<text y="2" text-anchor="middle" font-size="44" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${ycups.length}</text>`;
-  s += `<text y="24" text-anchor="middle" font-size="12" fill="var(--ink-48)">杯</text>`;
+  s += `<g id="dialCenter"><text id="dialNum" y="2" text-anchor="middle" font-size="44" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${ycups.length}</text>`;
+  s += `<text y="24" text-anchor="middle" font-size="12" fill="var(--ink-48)">杯</text></g>`;
+  /* 記録した直後だけ使う「✓ 記録しました」 */
+  s += `<g id="dialCheck" opacity="0" aria-hidden="true"><circle cy="-10" r="22" fill="var(--primary)"/><path d="M-9 -10 L-2.5 -3.5 L10 -17" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="32"/><text y="30" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)"></text></g>`;
   return s + '</svg>';
 }
 
@@ -870,12 +903,13 @@ function handle(el) {
         const old = cups.find(x => x.id === d.id), hadTaste = !!old.taste;
         if (!save(() => Object.assign(old, fields))) return;
         if (!hadTaste && filled) state.justAdded = old.id;
-        go(state.back || 'map'); toast('保存しました'); break;
+        const to = state.back || 'map';
+        if (to === 'map') { state.celebrate = !hadTaste && filled ? '記録しました' : '保存しました'; go('map'); } else { go(to); toast('保存しました'); }
+        break;
       }
       const c = { id: uid(), createdAt: new Date().toISOString(), ...fields };
       if (!save(() => cups.push(c))) return;
-      state.justAdded = c.id; state.tab = 'map'; state.sel = null; go('map');
-      toast(filled ? '記録しました' : '記録しました。飲んだら「味を足す」から味を残せます');
+      state.justAdded = c.id; state.tab = 'map'; state.sel = null; state.celebrate = '記録しました'; go('map');
       break;
     }
     case 'switchMode': d.mode = d.mode === 'brew' ? 'taste' : 'brew'; render(); break;
