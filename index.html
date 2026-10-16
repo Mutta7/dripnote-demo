@@ -117,6 +117,9 @@ button, input, textarea { font: inherit; letter-spacing: inherit; color: inherit
 .msugg { background: var(--parchment); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
 .msugg-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .msugg .use { white-space: nowrap; border: 0; background: var(--canvas); color: var(--link); border-radius: 9999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.mcollapsed { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--parchment); border-radius: 12px; padding: 9px 12px; font-size: 13px; color: var(--ink-48); letter-spacing: -0.08px; }
+.mcollapsed span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcollapsed button { flex: none; border: 0; background: none; color: var(--link); font-size: 13px; padding: 0; cursor: pointer; white-space: nowrap; }
 .mgroups { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
 .mgrp { display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); padding: 8px 12px; font-size: 14px; letter-spacing: -0.224px; text-align: left; cursor: pointer; white-space: nowrap; min-width: 0; }
 .mgrp span { overflow: hidden; text-overflow: ellipsis; }
@@ -636,9 +639,12 @@ function tasteInner() {
     const prev = bean ? hist.find(c => c.bean === bean) : null, pl = prev ? prev.taste.labels : [];
     const cnt = {}; hist.forEach(c => c.taste.labels.forEach(l => { cnt[l] = (cnt[l] || 0) + 1; }));
     const often = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(x => x[0]).filter(l => !pl.includes(l)).slice(0, 6);
-    body = `${prev ? `<div class="msugg"><div class="msugg-row"><span class="tsub">前回のこの豆</span><button type="button" class="use" data-act="usePrev" data-labels="${pl.join(',')}">この味にする</button></div><div class="fg">${pl.map(chip).join('')}</div></div>` : ''}
+    const cands = pl.concat(often);
+    body = state.more
+      ? `<div class="mcollapsed"><span>候補：${cands.slice(0, 3).join('・')}${cands.length > 3 ? '…' : ''}</span><button type="button" data-act="less">候補に戻る</button></div>${groups}`
+      : `${prev ? `<div class="msugg"><div class="msugg-row"><span class="tsub">前回のこの豆</span><button type="button" class="use" data-act="usePrev" data-labels="${pl.join(',')}">この味にする</button></div><div class="fg">${pl.map(chip).join('')}</div></div>` : ''}
       <p class="tsub">よく選ぶ味</p><div class="fg">${often.map(chip).join('')}</div>
-      ${state.more ? groups : `<button type="button" class="addrow" data-act="more">＋ ほかの味を探す</button>`}`;
+      <button type="button" class="addrow" data-act="more">＋ ほかの味を探す</button>`;
   }
   return `${picked}${body}<p class="mdesc" id="desc" aria-live="polite">${dl ? `<b>${dl}</b><span>${LABEL_INFO[dl].desc}</span>` : ''}</p>`;
 }
@@ -680,7 +686,7 @@ function recordView() {
     </div>` : `<button type="button" class="addrow" data-act="brewOn">＋ 淹れ方</button>`}
     ${d.id ? `<div style="padding-top:8px">${deleteBlock('この一杯の記録を削除します。元に戻せません。', 'deleteCup', '削除')}</div>` : ''}
   </form>
-  <div class="mfoot"><button type="button" class="btn block lgbtn" data-act="saveRecord" ${d.bean.trim() ? '' : 'disabled'}>${d.id ? '保存' : '記録'}</button></div>`;
+  <div class="mfoot"><button type="button" class="btn block lgbtn" data-act="saveRecord" ${d.bean.trim() ? '' : 'disabled'}>${d.id ? '保存する' : '記録する'}</button></div>`;
 }
 function tasteForm() {
   const d = state.draft, c = cups.find(x => x.id === state.cid);
@@ -874,6 +880,7 @@ function handle(el) {
   switch (a) {
     case 'menu': $('drawer').hidden = false; break;
     case 'more': state.more = true; refreshTaste(); break;
+    case 'less': state.more = false; state.openGroup = null; refreshTaste(); break;
     case 'openGroup': state.openGroup = state.openGroup === el.dataset.g ? null : el.dataset.g; refreshTaste(); break;
     case 'usePrev': { const T = tgtT(); el.dataset.labels.split(',').forEach(l => { if (l && !T.labels.includes(l)) T.labels.push(l); }); state.descLabel = null; refreshTaste(); updateSave(); break; }
     case 'menuClose': $('drawer').hidden = true; break;
