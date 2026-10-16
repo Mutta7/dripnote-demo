@@ -213,7 +213,17 @@ button, input, textarea { font: inherit; letter-spacing: inherit; color: inherit
 .yr { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--parchment); color: var(--link); font-size: 22px; line-height: 1; cursor: pointer; transition: transform .2s ease; }
 .yr:active { transform: scale(.92); }
 .yr:disabled { color: var(--hairline); cursor: default; transform: none; }
-.dial { width: 100%; max-width: 340px; display: block; }
+.dial { width: 100%; max-width: 360px; display: block; }
+.dial .yarrow { cursor: pointer; }
+.dial .yarrow:focus { outline: none; }
+.dial .yarrow:focus-visible text { text-decoration: underline; }
+.recent2 { margin: 4px 20px 0; display: grid; }
+.recent2-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 600; color: var(--ink-48); letter-spacing: -0.08px; padding: 0 2px 4px; }
+.rcup { display: grid; grid-template-columns: 6px minmax(0,1fr) auto; gap: 12px; align-items: center; text-align: left; width: 100%; background: none; border: 0; border-top: 1px solid var(--divider); padding: 12px 2px; cursor: pointer; color: var(--ink); }
+.rcup .bar { width: 6px; height: 30px; border-radius: 3px; display: block; box-sizing: border-box; }
+.rcup .t { min-width: 0; display: grid; }
+.rcup b { font-size: 15px; font-weight: 600; letter-spacing: -0.224px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rcup .t span { font-size: 12px; color: var(--ink-48); letter-spacing: -0.12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dial text { font-family: var(--font); letter-spacing: 0; }
 .dial .tick { cursor: pointer; transition: opacity .25s ease; }
 .dial .tick.grow { animation: grow .9s cubic-bezier(.2,1.3,.4,1) both; transform-box: view-box; transform-origin: 0 0; }
@@ -549,7 +559,7 @@ function dialSvg(ycups, year) {
   const ang = (d) => (d / total) * 2 * Math.PI - Math.PI / 2;
   const P = (r, a) => `${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`;
   const sel = state.sel, hit = sel ? new Set(matches(sel).map(c => c.id)) : null;
-  let s = `<svg class="dial" viewBox="-172 -172 344 344" role="img" aria-label="${year}年の文字盤。${ycups.length}杯">`;
+  let s = `<svg class="dial" viewBox="-134 -134 268 268" role="img" aria-label="${year}年の文字盤。${ycups.length}杯">`;
   /* 月ごとの傾向リング: その月の一杯の平均の明るさ */
   for (let m = 0; m < 12; m++) {
     const a0 = ang(dayOfYear(`${year}-${String(m + 1).padStart(2, '0')}-01`)) + .012, a1 = ang(m === 11 ? total : dayOfYear(`${year}-${String(m + 2).padStart(2, '0')}-01`)) - .012;
@@ -562,26 +572,29 @@ function dialSvg(ycups, year) {
   /* 今日の針（今年だけ） */
   if (year === thisYear()) {
     const t = new Date(), a = ang(dayOfYear(`${year}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`) + .5);
-    s += `<line x1="${P(48, a).split(' ')[0]}" y1="${P(48, a).split(' ')[1]}" x2="${P(R1 + 3 * (L + GAP) + 4, a).split(' ')[0]}" y2="${P(R1 + 3 * (L + GAP) + 4, a).split(' ')[1]}" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1"/>`;
-    s += `<circle cx="${P(R1 + 3 * (L + GAP) + 7, a).split(' ')[0]}" cy="${P(R1 + 3 * (L + GAP) + 7, a).split(' ')[1]}" r="2.5" fill="var(--ink)" fill-opacity=".6"><title>今日</title></circle>`;
+    s += `<line x1="${P(48, a).split(' ')[0]}" y1="${P(48, a).split(' ')[1]}" x2="${P(R1 + L + 5, a).split(' ')[0]}" y2="${P(R1 + L + 5, a).split(' ')[1]}" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1"/>`;
+    s += `<circle cx="${P(R1 + L + 8, a).split(' ')[0]}" cy="${P(R1 + L + 8, a).split(' ')[1]}" r="2.2" fill="var(--ink)" fill-opacity=".6"><title>今日</title></circle>`;
   }
-  /* 一杯ごとの目盛り。同じ日に2杯以上なら外へ重ねる */
-  const stack = {};
-  ycups.forEach((c) => {
-    const d = dayOfYear(c.date), k = stack[d] = (stack[d] || 0) + 1, a = ang(d + .5);
-    if (k > 3) return;
-    const r0 = R1 + (k - 1) * (L + GAP), r1 = r0 + L, g = mainGroup(c), dim = hit && !hit.has(c.id);
-    const [x0, y0] = P(r0, a).split(' '), [x1, y1] = P(r1, a).split(' ');
-    const label = `${fmtDate(c.date)} ${esc(c.bean)}｜${c.taste ? esc(c.taste.labels.join('・')) || 'メモのみ' : '味がまだ'}`;
-    s += `<g class="tick"${state.justAdded === c.id ? ' id="newTick"' : ''} data-act="open" data-id="${c.id}" opacity="${dim ? .13 : 1}"><title>${label}</title>`
+  /* 一杯ごとの目盛り。同じ日に2杯以上なら外へ重ねず、目盛りを太くする */
+  const byDay = new Map();
+  ycups.forEach(c => { const d = dayOfYear(c.date); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(c); });
+  byDay.forEach((list, d) => {
+    const c = list[list.length - 1], a = ang(d + .5), g = mainGroup(c), n = list.length;
+    const dim = hit && !list.some(x => hit.has(x.id)), isNew = list.some(x => x.id === state.justAdded);
+    const [x0, y0] = P(R1, a).split(' '), [x1, y1] = P(R1 + L, a).split(' ');
+    const label = list.map(x => `${fmtDate(x.date)} ${esc(x.bean)}｜${x.taste ? esc(x.taste.labels.join('・')) || 'メモのみ' : '味がまだ'}`).join('\n');
+    s += `<g class="tick"${isNew ? ' id="newTick"' : ''} data-act="open" data-id="${c.id}" opacity="${dim ? .13 : 1}"><title>${label}</title>`
       + `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="transparent" stroke-width="9"/>`
       + (g === -2
         ? `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="var(--ink-48)" stroke-width="1.6" stroke-dasharray="2.2 2.2"/>`
-        : `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${toneVar(g)}" stroke-width="3" stroke-linecap="round"/>`)
+        : `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${toneVar(g)}" stroke-width="${Math.min(6, 3 + (n - 1) * 1.5)}" stroke-linecap="round"/>`)
       + `</g>`;
   });
-  s += `<g id="dialCenter"><text id="dialNum" y="2" text-anchor="middle" font-size="44" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${ycups.length}</text>`;
-  s += `<text y="24" text-anchor="middle" font-size="12" fill="var(--ink-48)">杯</text></g>`;
+  const canPrev = year > firstYear(), canNext = year < thisYear();
+  const arrow = (dir, x, on) => `<g class="yarrow"${on ? ` data-act="year" data-d="${dir}" role="button" tabindex="0" aria-label="${dir < 0 ? '前の年' : '次の年'}"` : ' aria-hidden="true"'}><rect x="${x - 15}" y="27" width="30" height="28" fill="transparent"/><text x="${x}" y="46" text-anchor="middle" font-size="16" fill="${on ? 'var(--link)' : 'var(--hairline)'}">${dir < 0 ? '‹' : '›'}</text></g>`;
+  s += `<g id="dialCenter"><text id="dialNum" y="-4" text-anchor="middle" font-size="44" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${ycups.length}</text>`;
+  s += `<text y="15" text-anchor="middle" font-size="11" fill="var(--ink-48)">杯</text>`;
+  s += `<text y="45" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums">${year}</text>${arrow(-1, -36, canPrev)}${arrow(1, 36, canNext)}</g>`;
   /* 記録した直後だけ使う「✓ 記録しました」 */
   s += `<g id="dialCheck" opacity="0" aria-hidden="true"><circle cy="-10" r="22" fill="var(--primary)"/><path d="M-9 -10 L-2.5 -3.5 L10 -17" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="32"/><text y="30" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)"></text></g>`;
   return s + '</svg>';
@@ -703,11 +716,6 @@ function mapView() {
   return `
   <div class="topbar">${menuBtn()}</div>
   <section class="dialtile">
-    <div class="yearnav">
-      <button class="yr" data-act="year" data-d="-1" aria-label="前の年" ${y <= firstYear() ? 'disabled' : ''}>‹</button>
-      <b class="yname">${y}</b>
-      <button class="yr" data-act="year" data-d="1" aria-label="次の年" ${y >= thisYear() ? 'disabled' : ''}>›</button>
-    </div>
     ${dialSvg(ycups, y)}
     ${cups.length ? '' : '<p class="first">右下の＋から、最初の一杯を記録</p>'}
     <div class="dlegend" role="group" aria-label="味で絞る">
@@ -716,7 +724,20 @@ function mapView() {
   </section>
   ${sel ? `
     <div class="selhead"><span>${esc(sel.name)} ・ ${list.length}杯</span><button class="textbtn sm" data-act="clearSel">解除</button></div>
-    ${list.length ? `<div class="cups">${list.slice(0, 30).map(cupRow).join('')}</div>` : `<div class="empty">まだありません</div>`}` : ''}`;
+    ${list.length ? `<div class="cups">${list.slice(0, 30).map(cupRow).join('')}</div>` : `<div class="empty">まだありません</div>`}`
+  : recentHtml()}`;
+}
+/* 最近の一杯（2件まで）。それより前は「コーヒーの履歴」へ */
+function recentHtml() {
+  const list = sorted().slice(0, 2);
+  if (!list.length) return '';
+  return `<div class="recent2">
+    <div class="recent2-head"><span>最近の一杯</span><button class="textbtn sm" data-act="tab" data-to="log">すべて</button></div>
+    ${list.map(c => { const g = mainGroup(c); return `<button class="rcup" data-act="open" data-id="${c.id}">
+      <span class="bar" style="background:${g === -2 ? 'transparent' : toneVar(g)};${g === -2 ? 'border:1.5px dashed var(--ink-48)' : ''}"></span>
+      <span class="t"><b>${esc(c.bean)}</b><span>${fmtDate(c.date)}${c.taste && c.taste.labels.length ? ` ・ ${esc(c.taste.labels.slice(0, 3).join('・'))}` : c.taste ? '' : ' ・ 味がまだ'}</span></span>
+      ${c.taste && c.taste.rating ? starsHtml(c.taste.rating) : ''}</button>`; }).join('')}
+  </div>`;
 }
 function trendView() {
   const tasted = cups.filter(c => c.taste);
