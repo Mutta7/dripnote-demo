@@ -362,7 +362,6 @@ textarea { width: 100%; resize: none; border: 0; background: transparent; outlin
 body { margin: 0; }
 .stage { display: flex; justify-content: center; max-width: none; }
 .first { margin: 0 0 4px; font-size: 14px; color: var(--ink-48); letter-spacing: -0.224px; }
-.drawer .panel button.reset { margin-top: 24px; font-size: 14px; font-weight: 400; color: var(--danger); }
 @media (max-width: 500px) {
   body { padding: 0; }
   .stage { display: block; }
@@ -390,7 +389,6 @@ body { margin: 0; }
           <button data-act="tab" data-to="map">暦</button>
           <button data-act="tab" data-to="log">飲んだ一杯</button>
           <button data-act="tab" data-to="trend">味の傾向</button>
-          <button class="reset" data-act="resetAll">記録をすべて消す</button>
         </nav>
       </div>
       <nav class="tabbar" id="tabbar" aria-label="タブ">
@@ -802,11 +800,6 @@ function handle(el) {
   const a = el.dataset.act, d = state.draft;
   switch (a) {
     case 'menu': $('drawer').hidden = false; break;
-    case 'resetAll': {
-      if (!el.dataset.armed) { el.dataset.armed = '1'; el.textContent = 'もう一度押すと消えます'; setTimeout(() => { delete el.dataset.armed; el.textContent = '記録をすべて消す'; }, 3000); break; }
-      cups = []; persist(); delete el.dataset.armed; el.textContent = '記録をすべて消す';
-      $('drawer').hidden = true; state.sel = null; state.year = thisYear(); go('map'); toast('記録をすべて消しました'); break;
-    }
     case 'menuClose': $('drawer').hidden = true; break;
     case 'tab': $('drawer').hidden = true; state.tab = el.dataset.to; go(el.dataset.to, { sel: el.dataset.to === 'map' ? state.sel : state.sel }); break;
     case 'pick': {
