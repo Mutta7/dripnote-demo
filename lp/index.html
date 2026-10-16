@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カップノート｜コーヒーの味を記録するアプリ</title>
+<meta name="description" content="飲んだ味が、積み重なる。用意された味のラベルを選ぶだけで、飲んだコーヒーの味を1年の文字盤に記録していけるアプリです。">
+<link rel="canonical" href="https://mutta7.github.io/dripnote-demo/lp/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="カップノート">
+<meta property="og:title" content="カップノート｜コーヒーの味を記録するアプリ">
+<meta property="og:description" content="飲んだ味が、積み重なる。用意された味のラベルを選ぶだけで、飲んだコーヒーの味を1年の文字盤に記録していけるアプリです。">
+<meta property="og:url" content="https://mutta7.github.io/dripnote-demo/lp/">
+<meta property="og:image" content="https://mutta7.github.io/dripnote-demo/icon-512.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;600;700&display=swap">
+<style>
+/* Layout: Apple の製品ページ流に、明るいタイルと暗いタイルを交互に積む。
+   ヒーロー（文字盤）→ 3つの特長 → 好みが見えてくる（暗いタイル）→ リクエスト → よくある質問 → フッター。
+   色は DESIGN-apple.md（白・パーチメント・ほぼ黒・アクションブルー1色）＋ 豆の焙煎グラデーション。 */
+:root {
+  --primary: #0066cc; --link: #0066cc; --focus: #0071e3; --link-dark: #2997ff;
+  --ink: #1d1d1f; --ink-80: #333333; --ink-48: #7a7a7a;
+  --hairline: #e0e0e0; --divider: #f0f0f0; --canvas: #ffffff; --parchment: #f5f5f7;
+  --tile: #1d1d1f; --tile-2: #272729; --on-dark: #f5f5f7; --on-dark-muted: #a1a1a6;
+  --t0: #d9b68c; --t1: #b98a5c; --t2: #96643c; --t3: #6b4329; --t4: #3a251a;
+  --danger: #d70015;
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --link: #2997ff; --ink: #f5f5f7; --ink-80: #d2d2d7; --ink-48: #8e8e93; --hairline: #38383a; --divider: #2c2c2e; --canvas: #000000; --parchment: #1c1c1e;
+    --tile: #1c1c1e; --tile-2: #2c2c2e; --t0: #e3c29b; --t1: #c79a6c; --t2: #a6754b; --t3: #83573a; --t4: #5a3d2c; --danger: #ff453a; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --link: #2997ff; --ink: #f5f5f7; --ink-80: #d2d2d7; --ink-48: #8e8e93; --hairline: #38383a; --divider: #2c2c2e; --canvas: #000000; --parchment: #1c1c1e;
+  --tile: #1c1c1e; --tile-2: #2c2c2e; --t0: #e3c29b; --t1: #c79a6c; --t2: #a6754b; --t3: #83573a; --t4: #5a3d2c; --danger: #ff453a; color-scheme: dark; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+h1, .h2, .lead, .sub { word-break: auto-phrase; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.47; letter-spacing: -0.374px; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.in { max-width: 1000px; margin: 0 auto; padding-inline: 20px; }
+
+/* nav */
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--canvas) 80%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--divider); }
+.nav .in { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; color: var(--ink); }
+.brand svg { width: 26px; height: 26px; }
+.nav .links { display: flex; align-items: center; gap: 20px; font-size: 14px; }
+.nav .links a.t { color: var(--ink-80); }
+@media (max-width: 560px) { .nav .links a.t { display: none; } }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 9999px; padding: 11px 22px; font-size: 17px; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer; transition: transform .2s ease; text-decoration: none; white-space: nowrap; }
+.btn:hover { text-decoration: none; }
+.btn:active { transform: scale(.95); }
+.btn.ghost { background: transparent; color: var(--link); border-color: var(--link); }
+.btn.sm { min-height: 32px; padding: 6px 14px; font-size: 14px; }
+.btn.big { padding: 14px 30px; font-size: 18px; font-weight: 300; }
+
+/* hero */
+.hero { text-align: center; padding: 72px 0 56px; background: var(--canvas); overflow: hidden; }
+.hero .kick { font-size: 17px; font-weight: 600; color: var(--t2); margin: 0 0 8px; }
+.hero h1 { margin: 0; font-size: clamp(44px, 8vw, 80px); line-height: 1.05; font-weight: 600; letter-spacing: -1px; text-wrap: balance; }
+.hero .sub { margin: 14px auto 0; font-size: clamp(19px, 2.6vw, 26px); font-weight: 300; line-height: 1.4; max-width: 34ch; color: var(--ink-80); text-wrap: balance; }
+.hero .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+.hero .art { margin: 48px auto 0; width: min(440px, 88vw); aspect-ratio: 1; max-width: 100%; position: relative; }
+.hero .art svg { width: 100%; height: 100%; display: block; }
+.hero .art text { font-family: var(--font); letter-spacing: 0; }
+.hero .note { margin-top: 16px; font-size: 13px; color: var(--ink-48); }
+@keyframes beat { 0%, 70%, 100% { opacity: 1; } 80% { opacity: .35; } }
+
+/* sections */
+section.tile { padding: 88px 0; }
+section.tile.alt { background: var(--parchment); }
+section.tile.dark { background: var(--tile); color: var(--on-dark); }
+.h2 { margin: 0; font-size: clamp(32px, 5vw, 48px); line-height: 1.1; font-weight: 600; letter-spacing: -0.5px; text-align: center; text-wrap: balance; }
+.lead { margin: 14px auto 0; font-size: clamp(17px, 2vw, 21px); line-height: 1.5; max-width: 46ch; text-align: center; color: var(--ink-80); text-wrap: balance; }
+.dark .lead { color: var(--on-dark-muted); }
+
+.features { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; }
+@media (max-width: 860px) { .features { grid-template-columns: minmax(0,1fr); max-width: 520px; margin-inline: auto; } }
+.feat { background: var(--canvas); border-radius: 18px; padding: 28px 24px; display: grid; gap: 12px; align-content: start; }
+.feat .vis { height: 150px; border-radius: 12px; background: var(--parchment); display: grid; place-items: center; overflow: hidden; padding: 14px; }
+.feat h3 { margin: 6px 0 0; font-size: 21px; font-weight: 600; line-height: 1.24; letter-spacing: .231px; }
+.feat p { margin: 0; color: var(--ink-80); font-size: 15px; letter-spacing: -0.224px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chip { border-radius: 9999px; padding: 5px 11px; font-size: 13px; border: 1px solid var(--hairline); background: var(--canvas); white-space: nowrap; }
+.chip.on { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+.mini-rows { width: 100%; display: grid; gap: 6px; font-size: 13px; }
+.mini-rows div { display: flex; justify-content: space-between; background: var(--canvas); border-radius: 8px; padding: 6px 10px; }
+.mini-rows b { font-variant-numeric: tabular-nums; }
+.mini-rows .w { background: var(--tile-2); color: var(--on-dark); }
+
+
+/* taste (dark) */
+.taste { margin: 48px auto 0; max-width: 760px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+@media (max-width: 720px) { .taste { grid-template-columns: minmax(0,1fr); } }
+.tcard { background: var(--tile-2); border-radius: 18px; padding: 24px; display: grid; gap: 14px; align-content: start; }
+.tcard h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.tcard p { margin: 0; font-size: 14px; color: var(--on-dark-muted); letter-spacing: -0.224px; }
+.tcard .chips { justify-content: flex-start; }
+.tcard .chip { background: transparent; color: var(--on-dark); border-color: rgba(255,255,255,.22); }
+.tcard .chip.on { background: var(--on-dark); color: #1d1d1f; border-color: var(--on-dark); }
+.bars { display: grid; gap: 8px; }
+.bars div { display: grid; grid-template-columns: 84px minmax(0,1fr) 28px; gap: 10px; align-items: center; font-size: 13px; }
+.bars i { display: block; height: 8px; border-radius: 4px; }
+.bars span:last-child { text-align: right; color: var(--on-dark-muted); font-variant-numeric: tabular-nums; }
+
+/* request */
+.req { margin: 44px auto 0; max-width: 560px; background: var(--canvas); border-radius: 18px; border: 1px solid var(--hairline); padding: 28px; display: grid; gap: 18px; }
+.req label.f { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.req label.f small { font-weight: 400; color: var(--ink-48); }
+.req input[type=email], .req textarea { width: 100%; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); padding: 12px 14px; font-size: 17px; outline: none; }
+.req input:focus, .req textarea:focus { border-color: var(--focus); }
+.req textarea { resize: vertical; min-height: 96px; }
+.req .err { color: var(--danger); font-size: 13px; font-weight: 400; min-height: 18px; margin: 0; }
+.req fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.req legend { font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 6px; }
+.opt { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt label { position: relative; }
+.opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.opt span { display: inline-flex; border-radius: 9999px; padding: 7px 14px; font-size: 14px; border: 1px solid var(--hairline); cursor: pointer; }
+.opt input:checked + span { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+.opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+.req .fine { font-size: 12px; color: var(--ink-48); margin: 0; }
+.done { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 12px 0; }
+.done .ok { width: 56px; height: 56px; border-radius: 50%; background: var(--primary); display: grid; place-items: center; }
+.done h3 { margin: 4px 0 0; font-size: 24px; font-weight: 600; }
+.done p { margin: 0; color: var(--ink-80); font-size: 15px; max-width: 34ch; }
+.mock-note { font-size: 12px; color: var(--ink-48); background: var(--parchment); border-radius: 9999px; padding: 4px 12px; }
+
+/* faq */
+.faq { margin: 40px auto 0; max-width: 720px; }
+.faq details { border-top: 1px solid var(--hairline); padding: 18px 4px; }
+.faq details:last-child { border-bottom: 1px solid var(--hairline); }
+.faq summary { cursor: pointer; font-size: 19px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "＋"; color: var(--ink-48); font-weight: 300; }
+.faq details[open] summary::after { content: "−"; }
+.faq p { margin: 10px 0 0; color: var(--ink-80); font-size: 15px; letter-spacing: -0.224px; max-width: 60ch; }
+
+footer { background: var(--parchment); padding: 32px 0 calc(40px + env(safe-area-inset-bottom, 0px)); font-size: 12px; color: var(--ink-48); }
+footer .in { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* floating CTA on phones */
+.float { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 9; display: none; }
+.float .btn { width: 100%; }
+@media (max-width: 560px) { .float.show { display: block; } }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="ページ内">
+  <div class="in">
+    <a class="brand" href="#top" aria-label="カップノート トップ"><svg viewBox="0 0 64 64" aria-hidden="true" id="logo"></svg>カップノート</a>
+    <div class="links"><a class="t" href="#features">できること</a><a class="t" href="#faq">よくある質問</a><a class="btn sm" href="#request">リクエストを送る</a></div>
+  </div>
+</nav>
+
+<main id="top">
+  <section class="hero">
+    <div class="in">
+      <p class="kick">コーヒーの味を記録するアプリ</p>
+      <h1>カップノート</h1>
+      <p class="sub">飲んだ味が、積み重なる</p>
+      <div class="ctas">
+        <a class="btn big" href="#request">リクエストを送る</a>
+        <a class="btn ghost big" href="https://mutta7.github.io/dripnote-demo/" target="_blank" rel="noopener">デモを触ってみる</a>
+      </div>
+      <div class="art" id="heroDial" role="img" aria-label="1年を1周にした文字盤。飲んだ日に、その日の味の色の目盛りが刻まれている"></div>
+    </div>
+  </section>
+
+  <section class="tile alt" id="features">
+    <div class="in">
+      <h2 class="h2">味の言葉を知らなくても、残せる。</h2>
+      <p class="lead">用意された味のラベルを選ぶだけ。</p>
+      <div class="features">
+        <article class="feat">
+          <div class="vis"><div class="chips"><span class="chip on">ベリー</span><span class="chip">柑橘</span><span class="chip on">花の香り</span><span class="chip">はちみつ</span><span class="chip">ナッツ</span><span class="chip">すっきり</span><span class="chip">チョコレート</span></div></div>
+          <h3>味はラベルで選ぶ</h3>
+          <p>「ベリー」「はちみつ」「すっきり」など30の言葉から選ぶだけ。タップすると、どんな味かの説明も出ます。前回と同じ豆なら、前の味が候補に並びます。</p>
+        </article>
+        <article class="feat">
+          <div class="vis"><div class="mini-rows"><div><span>豆</span><b>15 g</b></div><div><span>比率</span><b>1 : 16</b></div><div class="w"><span>お湯（自動計算）</span><b>240 g</b></div><div><span>温度・クリック</span><b>92℃ ・ 24</b></div></div></div>
+          <h3>淹れ方はあとからでも</h3>
+          <p>淹れながらでも、飲んでから思い出しながらでも大丈夫です。</p>
+        </article>
+        <article class="feat">
+          <div class="vis" id="featDial"></div>
+          <h3>1年が文字盤になる</h3>
+          <p>1年でひとつの文字盤が完成します。季節ごとの好みの移り変わりも、色の流れで見えてきます。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="tile dark">
+    <div class="in">
+      <h2 class="h2">積み上がるほど、好みが見えてくる。</h2>
+      <p class="lead">「あのベリーっぽいの、どこの豆だっけ」を、味から引き出せます。</p>
+      <div class="taste">
+        <div class="tcard">
+          <h3>わたしの好み</h3>
+          <p>★4以上の一杯によく付いている味</p>
+          <div class="chips"><span class="chip on">ベリー</span><span class="chip on">花の香り</span><span class="chip">はちみつ</span><span class="chip">紅茶っぽい</span></div>
+        </div>
+        <div class="tcard">
+          <h3>よく出会った味（例）</h3>
+          <div class="bars" id="bars"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tile alt" id="request">
+    <div class="in">
+      <h2 class="h2">使ってみたい方へ。</h2>
+      <p class="lead">公開の準備ができたら、メールでお知らせします。欲しい機能のリクエストも歓迎です。</p>
+      <form class="req" id="reqForm" novalidate>
+        <label class="f" for="email">メールアドレス
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required aria-describedby="emailErr">
+          <p class="err" id="emailErr" aria-live="polite"></p>
+        </label>
+        <fieldset>
+          <legend>ふだんの淹れ方（いくつでも）</legend>
+          <div class="opt">
+            <label><input type="checkbox" name="method" value="ハンドドリップ" id="m1"><span>ハンドドリップ</span></label>
+            <label><input type="checkbox" name="method" value="フレンチプレス" id="m2"><span>フレンチプレス</span></label>
+            <label><input type="checkbox" name="method" value="エアロプレス" id="m3"><span>エアロプレス</span></label>
+            <label><input type="checkbox" name="method" value="エスプレッソ" id="m4"><span>エスプレッソ</span></label>
+            <label><input type="checkbox" name="method" value="コーヒースタンドやカフェで飲む" id="m5"><span>カフェで飲む</span></label>
+            <label><input type="checkbox" name="method" value="__other_option__" id="m6"><span>その他</span></label>
+          </div>
+          <p class="err" id="methodErr" aria-live="polite"></p>
+        </fieldset>
+        <label class="f" for="note">欲しい機能・ひとこと <small>（任意）</small>
+          <textarea id="note" name="note" placeholder="例：豆の写真を残したい、スマホとPCで同じ記録を見たい"></textarea>
+        </label>
+        <button class="btn big" type="submit">リクエストを送る</button>
+        <p class="fine">いただいたメールアドレスは、公開のお知らせと、リクエストについての連絡だけに使います。</p>
+      </form>
+    </div>
+  </section>
+
+  <section class="tile" id="faq">
+    <div class="in">
+      <h2 class="h2">よくある質問</h2>
+      <div class="faq">
+        <details><summary>いまは何ができますか？</summary><p>デモ版で、記録・文字盤・コーヒーの履歴・わたしの好みを触れます。登録もログインも不要です。</p></details>
+        <details><summary>デモ版のデータはどこに保存されますか？</summary><p>使っている端末のブラウザの中だけに保存されます。ほかの端末とは共有されず、ブラウザのデータを消すと記録も消えます。</p></details>
+        <details><summary>豆の写真は残せますか？</summary><p>いまは未対応です。今後の追加を予定しています。</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="in"><span>カップノート</span><span><a href="https://mutta7.github.io/dripnote-demo/" target="_blank" rel="noopener">デモ</a></span></div></footer>
+<div class="float" id="float"><a class="btn" href="#request">リクエストを送る</a></div>
+
+<script>
+const T = (i) => `var(--t${i})`;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+/* 見本の1年（10月中旬まで、約110杯。春は明るく、秋は深め） */
+const TODAY = 288;
+const CUPS = (() => { const R = rng(5), days = Array.from({ length: TODAY - 1 }, (_, i) => i + 1); for (let k = days.length - 1; k > 0; k--) { const j = Math.floor(R() * (k + 1)); [days[k], days[j]] = [days[j], days[k]]; } return days.slice(0, 110).sort((a, b) => a - b).map(d => { const m = d / 30.4, base = m < 4 ? 1 : m < 7 ? 2 : 3; return { d, tone: Math.max(0, Math.min(4, base + Math.round((R() - .5) * 2))) }; }); })();
+
+function dialSvg({ labels = true, count = true, vb = 134, today = true } = {}) {
+  const R1 = 108, L = 15, RM0 = 86, RM1 = 92, ang = (d) => (d / 365) * 2 * Math.PI - Math.PI / 2;
+  const P = (r, a) => [+(r * Math.cos(a)).toFixed(1), +(r * Math.sin(a)).toFixed(1)];
+  let s = `<svg viewBox="${-vb} ${-vb} ${2 * vb} ${2 * vb}" aria-hidden="true">`;
+  for (let m = 0; m < 12; m++) {
+    const a0 = ang(m * 30.4) + .012, a1 = ang((m + 1) * 30.4) - .012, ts = CUPS.filter(c => Math.floor(c.d / 30.4) === m).map(c => c.tone);
+    const avg = ts.length ? Math.round(ts.reduce((a, b) => a + b, 0) / ts.length) : null;
+    const [x1, y1] = P(RM1, a0), [x2, y2] = P(RM1, a1), [x3, y3] = P(RM0, a1), [x4, y4] = P(RM0, a0);
+    s += `<path d="M${x1} ${y1}A${RM1} ${RM1} 0 0 1 ${x2} ${y2}L${x3} ${y3}A${RM0} ${RM0} 0 0 0 ${x4} ${y4}Z" fill="${avg === null ? 'var(--divider)' : T(avg)}"/>`;
+    if (labels) { const [tx, ty] = P(RM0 - 13, (a0 + a1) / 2); s += `<text x="${tx}" y="${ty + 3.5}" text-anchor="middle" font-size="10" fill="var(--ink-48)">${m + 1}</text>`; }
+  }
+  CUPS.forEach((c, i) => { const a = ang(c.d + .5), [x0, y0] = P(R1, a), [x1, y1] = P(R1 + L, a); s += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="${T(c.tone)}" stroke-width="3" stroke-linecap="round"${today && i === CUPS.length - 1 ? ' style="animation:beat 3s ease-in-out infinite"' : ''}/>`; });
+  if (count) s += `<text y="2" text-anchor="middle" font-size="46" font-weight="600" fill="var(--ink)" style="font-variant-numeric:tabular-nums;letter-spacing:-1px">${CUPS.length}</text><text y="22" text-anchor="middle" font-size="11" fill="var(--ink-48)">杯</text><text y="44" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">2026</text>`;
+  return s + '</svg>';
+}
+document.getElementById('heroDial').innerHTML = dialSvg();
+document.getElementById('featDial').innerHTML = dialSvg({ labels: false, count: false, today: false }).replace('<svg', '<svg style="height:130px;width:130px"');
+/* ロゴ: アプリアイコンと同じ形を小さく */
+document.getElementById('logo').innerHTML = (() => { let s = '<rect width="64" height="64" rx="14" fill="var(--parchment)"/>'; for (let i = 0; i < 24; i++) { if (i > 19 || i === 5 || i === 12) continue; const a = -Math.PI / 2 + 2 * Math.PI * (i + .5) / 24, c = 32; s += `<line x1="${c + 17 * Math.cos(a)}" y1="${c + 17 * Math.sin(a)}" x2="${c + 25 * Math.cos(a)}" y2="${c + 25 * Math.sin(a)}" stroke="${T(Math.min(4, Math.floor(i / 4)))}" stroke-width="3" stroke-linecap="round"/>`; } return s + '<g transform="translate(32 32) rotate(28)"><ellipse rx="6" ry="8" fill="var(--t4)"/><path d="M.4 -6.6C3 -2.6 -3 2 -.2 6.8" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></g>'; })();
+/* 好みの例 */
+document.getElementById('bars').innerHTML = [['ベリー', 0, 24], ['はちみつ', 2, 18], ['花の香り', 0, 15], ['ナッツ', 3, 11], ['スモーキー', 4, 6]].map(([l, t, n]) => `<div><span>${l}</span><i style="width:${n / 24 * 100}%;background:${T(t)}"></i><span>${n}</span></div>`).join('');
+
+/* リクエストフォーム → Google フォームに送る。
+   送信先は Google 側なので応答は読めない（no-cors）。届かなかったときのために、フォームへのリンクも出す。 */
+const GFORM = {
+  action: 'https://docs.google.com/forms/d/e/1FAIpQLSf3X5PgJ1cFpjhBM-XCjrzGM_wHfTEH5qlfeZe7jXhzcB9vEQ/formResponse',
+  open: 'https://forms.gle/ArXw72kGKBPEcdj9A',
+  email: 'entry.1855878097', method: 'entry.1479648881', note: 'entry.1204592988',
+};
+const form = document.getElementById('reqForm'), email = document.getElementById('email'), err = document.getElementById('emailErr'), merr = document.getElementById('methodErr');
+const checked = () => [...form.querySelectorAll('input[name=method]:checked')].map(x => x.value);
+email.addEventListener('input', () => { if (err.textContent && email.validity.valid) err.textContent = ''; });
+form.addEventListener('change', (e) => { if (e.target.name === 'method' && checked().length) merr.textContent = ''; });
+const doneHtml = (title, msg, extra = '') => `<div class="done" role="status"><div class="ok"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3>${title}</h3><p>${msg}</p>${extra}</div>`;
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!email.value.trim()) { err.textContent = 'メールアドレスを入れてください。'; email.focus(); return; }
+  if (!email.validity.valid) { err.textContent = 'メールアドレスの形が正しくありません。「@」と「.」が入っているか確かめてください。'; email.focus(); return; }
+  const methods = checked();
+  if (!methods.length) { merr.textContent = 'ふだんの淹れ方を1つ以上選んでください。'; form.querySelector('#m1').focus(); return; }
+  const body = new URLSearchParams();
+  body.append(GFORM.email, email.value.trim());
+  methods.forEach(m => body.append(GFORM.method, m));
+  if (methods.includes('__other_option__')) body.append(GFORM.method + '.other_option_response', 'その他');
+  const note = document.getElementById('note').value.trim();
+  if (note) body.append(GFORM.note, note);
+  const btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = '送信しています…';
+  try {
+    await fetch(GFORM.action, { method: 'POST', mode: 'no-cors', body });
+    form.innerHTML = doneHtml('リクエストを受け付けました', '公開の準備ができたら、入力いただいたアドレスにお知らせします。');
+  } catch {
+    btn.disabled = false; btn.textContent = 'リクエストを送る';
+    merr.innerHTML = `送信できませんでした。通信状態を確かめてもう一度押すか、<a href="${GFORM.open}" target="_blank" rel="noopener">Google フォーム</a>から送ってください。`;
+  }
+});
+/* スマホでは、ヒーローのボタンが画面から外れたら下に追従ボタンを出す（リクエスト欄が見えている間は隠す） */
+const fl = document.getElementById('float'), heroCtas = document.querySelector('.hero .ctas'), reqSec = document.getElementById('request');
+let heroVisible = true, reqVisible = false;
+const upd = () => fl.classList.toggle('show', !heroVisible && !reqVisible);
+new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; upd(); }).observe(heroCtas);
+new IntersectionObserver(([e]) => { reqVisible = e.isIntersecting; upd(); }).observe(reqSec);
+</script>
+</body>
+</html>

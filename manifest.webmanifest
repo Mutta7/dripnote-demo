@@ -1,6 +1,6 @@
 {
-  "name": "ドリップノート",
-  "short_name": "ドリップノート",
+  "name": "カップノート",
+  "short_name": "カップノート",
   "description": "飲んだコーヒーと味を、1年の文字盤に記録していくデモ。",
   "lang": "ja",
   "start_url": "./",
