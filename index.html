@@ -386,17 +386,17 @@ body { margin: 0; }
       <div class="drawer" id="drawer" hidden>
         <div class="scrim" data-act="menuClose"></div>
         <nav class="panel" aria-label="メニュー">
-          <button data-act="tab" data-to="map">暦</button>
-          <button data-act="tab" data-to="log">飲んだ一杯</button>
-          <button data-act="tab" data-to="trend">味の傾向</button>
+          <button data-act="tab" data-to="map">ホーム</button>
+          <button data-act="tab" data-to="log">コーヒーの履歴</button>
+          <button data-act="tab" data-to="trend">わたしの好み</button>
         </nav>
       </div>
       <nav class="tabbar" id="tabbar" aria-label="タブ">
         <button class="tab" id="tab-map" data-act="tab" data-to="map">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>暦
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>ホーム
         </button>
         <button class="tab" id="tab-log" data-act="tab" data-to="log">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>飲んだ一杯
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/></svg>コーヒーの履歴
         </button>
       </nav>
       <div class="toast" id="toast" hidden role="status"></div>
@@ -646,7 +646,7 @@ function trendView() {
   const fav = {}; tasted.filter(c => c.taste.rating >= 4).forEach(c => c.taste.labels.forEach(l => { if (LABEL_INFO[l].group !== '気になった点') fav[l] = (fav[l] || 0) + 1; }));
   const favTop = Object.entries(fav).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
   return `
-  <div class="subnav">${menuBtn()}<h1>味の傾向</h1></div>
+  <div class="subnav">${menuBtn()}<h1>わたしの好み</h1></div>
   ${favTop.length ? `<h2 class="section-title">好きかもしれない味</h2><div class="prefs"><span class="k">★4以上の一杯によく付いている味</span><div class="chips">${favTop.map(l => `<button class="lab" data-act="pickLabel" data-name="${l}">${l}</button>`).join('')}</div></div>` : ''}
   <h2 class="section-title">よく出会った味</h2>
   ${top.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 20px">${top.map(([l, n]) => `<button class="lab" data-act="pickLabel" data-name="${l}">${l} ${n}</button>`).join('')}</div>` : '<div class="empty">まだありません</div>'}`;
@@ -662,7 +662,7 @@ function logView() {
   const list = sorted().filter(c => !q || (c.bean + (c.taste ? c.taste.labels.join('') + c.taste.memo : '')).toLowerCase().includes(q));
   const byMonth = {}; list.forEach(c => { const k = c.date.slice(0, 7); (byMonth[k] = byMonth[k] || []).push(c); });
   return `
-  <div class="subnav">${menuBtn()}<h1>飲んだ一杯</h1></div>
+  <div class="subnav">${menuBtn()}<h1>コーヒーの履歴</h1></div>
   <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="text" placeholder="豆の名前・味・メモで探す" value="${esc(state.q)}" aria-label="検索"></label>
   <div id="logList">${logList(byMonth)}</div>
 `;
