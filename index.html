@@ -109,7 +109,21 @@ button, input, textarea { font: inherit; letter-spacing: inherit; color: inherit
 .mstars { display: flex; justify-content: center; gap: 4px; }
 .mstars .star { width: 44px; height: 44px; }
 .mstars .star svg { width: 30px; height: 30px; }
-.flav { display: grid; gap: 10px; }
+.tastebox { display: grid; gap: 12px; }
+.tsub { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink-48); letter-spacing: -0.12px; }
+.mpicked { display: flex; flex-wrap: wrap; gap: 6px; }
+.mpicked .pk { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 9999px; background: var(--ink); color: var(--canvas); padding: 5px 11px; font-size: 13px; letter-spacing: -0.08px; cursor: pointer; }
+.mpicked .pk span { font-size: 10px; opacity: .7; }
+.msugg { background: var(--parchment); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.msugg-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.msugg .use { white-space: nowrap; border: 0; background: var(--canvas); color: var(--link); border-radius: 9999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.mgroups { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+.mgrp { display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); padding: 8px 12px; font-size: 14px; letter-spacing: -0.224px; text-align: left; cursor: pointer; white-space: nowrap; min-width: 0; }
+.mgrp span { overflow: hidden; text-overflow: ellipsis; }
+.mgrp i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mgrp small { margin-left: auto; color: var(--link); font-size: 12px; font-variant-numeric: tabular-nums; }
+.mgrp[aria-expanded="true"] { border: 2px solid var(--primary-focus); padding: 7px 11px; }
+.mgrp-open { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; background: var(--parchment); border-radius: 12px; padding: 10px; }
 .fg { display: flex; flex-wrap: wrap; gap: 6px; }
 .mdesc { margin: -6px 0 0; min-height: 20px; font-size: 13px; letter-spacing: -0.08px; color: var(--ink-48); }
 .mdesc b { color: var(--ink); font-weight: 600; margin-right: 6px; }
@@ -562,18 +576,44 @@ const tgtT = () => state.screen === 'record' ? state.draft.taste : state.draft;
 const closeBtn = (act) => `<button class="menu-btn" data-act="${act}" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
 const CAMERA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="18" height="13" rx="2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M8.5 6.5l1.4-2h4.2l1.4 2"/></svg>';
 /* 味の入力: 星・ラベル・メモだけ。グループ名は出さず、余白で区切る */
+/* 味の入力: 記録が3杯以上あれば「前回のこの豆」と「よく選ぶ味」を先に出し、ほかはグループから開く */
 function tasteFields(t) {
-  const dl = state.descLabel;
   return `
     <div class="mstars" role="group" aria-label="評価" id="ratingBox">${ratingBtns(t.rating)}</div>
-    <div class="flav">${FLAVORS.map(([g, , ls]) => `<div class="fg" role="group" aria-label="${g}">${ls.map(([l]) => `<button type="button" class="lab" data-act="toggleLabel" data-name="${l}" aria-pressed="${t.labels.includes(l)}">${l}</button>`).join('')}</div>`).join('')}</div>
-    <p class="mdesc" id="desc" aria-live="polite">${dl ? `<b>${dl}</b><span>${LABEL_INFO[dl].desc}</span>` : ''}</p>
+    <div id="tastebox" class="tastebox">${tasteInner()}</div>
     <textarea class="mmemo" id="f-tmemo" data-f="${state.screen === 'record' ? 't.memo' : 'memo'}" placeholder="メモ" rows="2">${esc(t.memo)}</textarea>`;
 }
+function tasteCtx() {
+  const d = state.draft, rec = state.screen === 'record';
+  const cur = rec ? null : cups.find(x => x.id === state.cid);
+  return { t: rec ? d.taste : d, selfId: rec ? d.id : state.cid, bean: ((rec ? d.bean : cur && cur.bean) || '').trim() };
+}
+function tasteInner() {
+  const { t, selfId, bean } = tasteCtx(), dl = state.descLabel;
+  const hist = sorted().filter(c => c.id !== selfId && c.taste && c.taste.labels.length);
+  const chip = (l) => `<button type="button" class="lab" data-act="toggleLabel" data-name="${l}" aria-pressed="${t.labels.includes(l)}">${l}</button>`;
+  const picked = t.labels.length ? `<div class="mpicked" aria-label="選んだ味">${t.labels.map(l => `<button type="button" class="pk" data-act="toggleLabel" data-name="${l}" aria-label="${l}を外す">${l}<span aria-hidden="true">✕</span></button>`).join('')}</div>` : '';
+  const groups = `<div class="mgroups">${FLAVORS.map(([g, , ls]) => {
+    const n = ls.filter(([l]) => t.labels.includes(l)).length, open = state.openGroup === g, gi = COLOR_GROUPS.indexOf(g);
+    return `<button type="button" class="mgrp" data-act="openGroup" data-g="${g}" aria-expanded="${open}"><i style="background:${gi >= 0 ? `var(${GROUP_VAR[gi]})` : 'var(--neutral)'}"></i><span>${g}</span>${n ? `<small>${n}</small>` : ''}</button>${open ? `<div class="mgrp-open">${ls.map(([l]) => chip(l)).join('')}</div>` : ''}`;
+  }).join('')}</div>`;
+  let body;
+  if (hist.length < 3) body = groups;
+  else {
+    const prev = bean ? hist.find(c => c.bean === bean) : null, pl = prev ? prev.taste.labels : [];
+    const cnt = {}; hist.forEach(c => c.taste.labels.forEach(l => { cnt[l] = (cnt[l] || 0) + 1; }));
+    const often = Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(x => x[0]).filter(l => !pl.includes(l)).slice(0, 6);
+    body = `${prev ? `<div class="msugg"><div class="msugg-row"><span class="tsub">前回のこの豆</span><button type="button" class="use" data-act="usePrev" data-labels="${pl.join(',')}">この味にする</button></div><div class="fg">${pl.map(chip).join('')}</div></div>` : ''}
+      <p class="tsub">よく選ぶ味</p><div class="fg">${often.map(chip).join('')}</div>
+      ${state.more ? groups : `<button type="button" class="addrow" data-act="more">＋ ほかの味を探す</button>`}`;
+  }
+  return `${picked}${body}<p class="mdesc" id="desc" aria-live="polite">${dl ? `<b>${dl}</b><span>${LABEL_INFO[dl].desc}</span>` : ''}</p>`;
+}
+function refreshTaste() { const b = $('tastebox'); if (b) b.innerHTML = tasteInner(); }
 function openCup(id) {
   const c = cups.find(x => x.id === id); if (!c) return;
   const from = ['map', 'log', 'trend'].includes(state.screen) ? state.screen : 'map';
-  go('record', { cid: c.id, back: from, descLabel: null, draft: {
+  go('record', { cid: c.id, back: from, descLabel: null, more: false, openGroup: null, draft: {
     id: c.id, bean: c.bean, date: c.date, photo: c.photo,
     taste: c.taste ? structuredClone(c.taste) : { rating: 0, labels: [], memo: '' },
     brewOn: !!c.brew, brew: c.brew ? { ...c.brew } : null } });
@@ -800,6 +840,9 @@ function handle(el) {
   const a = el.dataset.act, d = state.draft;
   switch (a) {
     case 'menu': $('drawer').hidden = false; break;
+    case 'more': state.more = true; refreshTaste(); break;
+    case 'openGroup': state.openGroup = state.openGroup === el.dataset.g ? null : el.dataset.g; refreshTaste(); break;
+    case 'usePrev': { const T = tgtT(); el.dataset.labels.split(',').forEach(l => { if (l && !T.labels.includes(l)) T.labels.push(l); }); state.descLabel = null; refreshTaste(); updateSave(); break; }
     case 'menuClose': $('drawer').hidden = true; break;
     case 'tab': $('drawer').hidden = true; state.tab = el.dataset.to; go(el.dataset.to, { sel: el.dataset.to === 'map' ? state.sel : state.sel }); break;
     case 'pick': {
@@ -813,7 +856,7 @@ function handle(el) {
     case 'open': openCup(el.dataset.id); break;
     case 'back': go(state.back || 'map'); break;
     case 'resume': openCup(el.dataset.id); break;
-    case 'newCup': go('record', { back: state.screen, descLabel: null, draft: { bean: '', date: today(), photo: null, taste: { rating: 0, labels: [], memo: '' }, brewOn: false, brew: null } }); break;
+    case 'newCup': go('record', { back: state.screen, descLabel: null, more: false, openGroup: null, draft: { bean: '', date: today(), photo: null, taste: { rating: 0, labels: [], memo: '' }, brewOn: false, brew: null } }); break;
     case 'cancelRecord': go(state.back || 'map'); break;
     case 'brewOn': { d.brewOn = true; d.brew = brewPrefill(d.bean.trim()); const st = view.scrollTop; render(); view.scrollTop = st; break; }
     case 'brewOff': { d.brewOn = false; const st = view.scrollTop; render(); view.scrollTop = st; break; }
@@ -876,7 +919,9 @@ function handle(el) {
     case 'toggleLabel': {
       const T = tgtT(), l = el.dataset.name, i = T.labels.indexOf(l);
       i >= 0 ? T.labels.splice(i, 1) : T.labels.push(l);
-      el.setAttribute('aria-pressed', i < 0); state.descLabel = l;
+      state.descLabel = l;
+      if ($('tastebox')) { refreshTaste(); updateSave(); break; }
+      el.setAttribute('aria-pressed', i < 0);
       $('desc').innerHTML = `<b>${l}</b><span>${LABEL_INFO[l].desc}</span>`;
       const lc = $('labCount'); if (lc) lc.textContent = T.labels.length ? `${T.labels.length}個選択中` : '';
       updateSave(); break;
@@ -899,6 +944,7 @@ function handle(el) {
   }
 }
 function refreshBean() {
+  if (state.screen === 'record') refreshTaste();
   const d = state.draft, ok = !!d.bean.trim();
   view.querySelectorAll('[data-act="startWith"]').forEach(x => { x.disabled = !ok; });
   const foot = $('beanFoot'); if (foot) foot.hidden = ok;
